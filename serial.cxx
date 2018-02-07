@@ -8,49 +8,44 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include <assert.h>
+#include "serial.h"
+#include "ic7300.h"
 
 static void serial_port_init(struct termios *ptio);
 static int  serial_send(const unsigned char *buf, int n);
 static void *serial_listen_thread_loop(void *pfd);
 
-/* These are per the "Data format" section of the Full Manual. */
-const unsigned char PREAMBLE    = 0xFE;
-const unsigned char XCVR_ADDR   = 0x94; /* Transceiver's default address */
-const unsigned char CONT_ADDR   = 0xE0; /* Controller's default address */
-const unsigned char OK_CODE     = 0xFB;
-const unsigned char NG_CODE     = 0xFA;
-const unsigned char END_MESSAGE = 0xFD;
-
 static int            f_fd = 0;
 static struct termios f_tio_orig;
 
 static pthread_t listen_thread;
-static bool      f_done = false;
 
-//const unsigned char READ_SCOPE_WAVEFORM_DATA = {0x27, 0x00, 
+// Getting this working with CANON mode. Maybe switch to timed reads later if
+// there are problems with CANON mode.
+#define CANON
 
-//#pragma pack(1)
-//struct scope_waveform_data_tag {
-//    unsigned char zero;
-//    unsigned char current_division;
-//    unsigned char max_division;
-//    union {
-//        struct extra_waveform_data_tag {
-//            unsigned char fixed_flag;
-//            unsigned char waveform_info;
-//            unsigned char out_of_range_flag;
-//        } extra_waveform_data_tag;
-//        unsigned char waveform_data[4];
-//    };
-//} x;
+#ifdef CANON
+    // The biggest message we should ever receive from the radio is less than
+    // 256 bytes.
+    #define RECEIVE_BUFFER_SIZE 256
+#else
+    // Measured approximately 29 '27 00 001 blocks in approximately 599 mS. So,
+    // we're getting a block about once every 20 mS.  Most of these blocks are
+    // 59 bytes. 115,200 baud is approximately 11,520 bytes per second. So, it
+    // takes about 5 mS to transmit a block.
+    //
+    // When doing 100 mS timed reads we can easily end up with six ~60 byte
+    // '27 00 00' blocks + a few other responses in the receive buffer at any
+    // time. 1024 is more than double what should be necessary, and doesn't
+    // seem too big.
+    #define RECEIVE_BUFFER_SIZE 1024
+    static bool f_done = false;
+#endif
 
 int serial_init(const char *devStr)
 {
     struct termios tio;
     int rc;
-
-//    printf("sizeof x = %d\n", sizeof(x));
-//    exit(1);
 
     f_fd = open(devStr, O_RDWR | O_NOCTTY);
     if(f_fd == 1) {
@@ -59,16 +54,15 @@ int serial_init(const char *devStr)
         return 1;
     }
 
-    /* Get the current serial port configuration and save it off for
-     * restoration later. */
+    // Get the current serial port configuration and save it off for
+    // restoration later.
     rc = tcgetattr(f_fd, &f_tio_orig);
-    if(rc < 0) {
+    if(rc < 0)
         printf("main: failed to get attr: %d, %s\n", rc, strerror(errno));
-    }
 
     tio = f_tio_orig;
 
-    /* Modify the current configuration for our use here. */
+    // Modify the current configuration for our use here.
     serial_port_init(&tio);
 
     // Start the listen thread.
@@ -81,7 +75,12 @@ int serial_close(void)
 {
     int rc;
 
+#ifdef CANON
+    pthread_cancel(listen_thread);
+#else
     f_done = true;
+#endif
+
     puts("Joining Listen Thread");
     pthread_join(listen_thread, NULL);
     puts("Joined");
@@ -266,7 +265,7 @@ static void serial_port_init(struct termios *ptio)
     cfsetospeed(ptio, B115200);
 
     // This is almost exactly like raw mode. We're going to set ICANON so we can detect
-    // end of message by 0xFD from the ICOM radio though.
+    // end of message by END_MESSAGE (0xFD) from the ICOM radio though.
     ptio->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
     ptio->c_oflag &= ~OPOST;
     ptio->c_lflag &= ~(ECHO | ECHONL | ISIG | IEXTEN);
@@ -277,10 +276,9 @@ static void serial_port_init(struct termios *ptio)
     // IEXTEN not set means these have no effect: EOL2, LNEXT, REPRINT, WERASE, IUCLC.
     memset(ptio->c_cc, 0, sizeof(ptio->c_cc));
 
-//#define CANON
 #ifdef  CANON
     ptio->c_lflag |= ICANON;
-    ptio->c_cc[VEOL] = 0xFD;
+    ptio->c_cc[VEOL] = END_MESSAGE;
 #else
     // Wait 1 tenth second before returing read.  This makes a purely timed
     // read. read(f_fd...) will always take about 1/10 second.
@@ -329,17 +327,32 @@ static int serial_send(const unsigned char *buf, int n)
 
 static void *serial_listen_thread_loop(void *pfd)
 {
-    // Measured approximately 29 '27 00 001 blocks in approximately 599 mS. So,
-    // we're getting a block about once every 20 mS.  Most of these blocks are
-    // 59 bytes. 115,200 baud is approximately 11,520 bytes per second. So, it
-    // takes about 5 mS to transmit a block.
-    //
-    // When doing 100 mS timed reads we can easily end up with six ~60 byte
-    // '27 00 00' blocks + a few other responses in the receive buffer at any
-    // time. 1024 is more than double what should be necessary, and doesn't
-    // seem too big.
+#ifdef CANON
+    try {
+        // Local variables defined within the try {} so they unwind if there is
+        // an exception.
+        int n, nread;
+        unsigned char buf[RECEIVE_BUFFER_SIZE];
+
+        while(true) {
+            nread = read(f_fd, buf, sizeof(buf));
+            if(END_MESSAGE == buf[nread - 1]) {
+                process_cmd_from_radio(buf, nread);
+            } else {
+                printf("serial_listen_thread_loop: invalid message. Read %d bytes:", nread);
+                for(n = 0; n < nread; n++) {
+                    printf(" %02X", buf[n]);
+                }
+                putchar('\n');
+            }
+        }
+    } catch(...) {
+        puts("serial_listen_thread_loop: cancelled");
+        throw;
+    }
+#else
     int n, nread;
-    unsigned char buf[1024];
+    unsigned char buf[RECEIVE_BUFFER_SIZE];
 
     while(!f_done) {
         nread = read(f_fd, buf, sizeof(buf));
@@ -351,6 +364,7 @@ static void *serial_listen_thread_loop(void *pfd)
             putchar('\n');
         }
     }
+#endif
 
     return NULL;
 }

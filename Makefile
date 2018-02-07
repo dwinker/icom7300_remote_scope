@@ -3,14 +3,17 @@ CFLAGS=-g -c -Wall -std=c++11
 FL_CFLAGS=$(CFLAGS) `fltk-config --cxxflags --use-images`
 LIBS=`fltk-config --ldflags` -lfltk -lfltk_images -lstdc++ -lXfixes -lXext -lpthread -ldl -lm -lX11
 
-remscp: remscp.o serial.o scope_waveform_data.o flslider2.o progdefaults.o scope_waveform_data.o waterfall.o
-	$(CC) -o remscp remscp.o serial.o scope_waveform_data.o flslider2.o progdefaults.o waterfall.o $(LIBS)
+remscp: remscp.o serial.o ic7300.o scope_waveform_data.o flslider2.o progdefaults.o scope_waveform_data.o waterfall.o
+	$(CC) -o remscp remscp.o serial.o ic7300.o scope_waveform_data.o flslider2.o progdefaults.o waterfall.o $(LIBS)
 
 remscp.o: remscp.cxx
 	$(CC) $(FL_CFLAGS) -c -Iinclude remscp.cxx
 
-serial.o: serial.cxx
+serial.o: serial.cxx serial.h ic7300.h
 	$(CC) $(CFLAGS) -c serial.cxx
+
+ic7300.o: ic7300.cxx ic7300.h
+	$(CC) $(CFLAGS) -c ic7300.cxx
 
 scope_waveform_data.o: scope_waveform_data.cxx
 	$(CC) $(CFLAGS) -c -I. -I./include scope_waveform_data.cxx
