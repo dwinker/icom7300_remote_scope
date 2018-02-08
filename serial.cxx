@@ -27,7 +27,7 @@ static pthread_t listen_thread;
 #ifdef CANON
     // The biggest message we should ever receive from the radio is less than
     // 256 bytes.
-    #define RECEIVE_BUFFER_SIZE 256
+    #define RECEIVE_BUFFER_SIZE (8*256)
 #else
     // Measured approximately 29 '27 00 001 blocks in approximately 599 mS. So,
     // we're getting a block about once every 20 mS.  Most of these blocks are
@@ -211,7 +211,7 @@ void send_scope_wave_output_off(void)
 
     nsent = serial_send(buf, n);
 
-    printf("send_scope_wave_output_on: sent %d of %d bytes.\n", nsent, n);
+    printf("send_scope_wave_output_off: sent %d of %d bytes.\n", nsent, n);
 
     //nsent = read(f_fd, buf, sizeof(buf));
     //printf("send_scope_on: read %d bytes:", nsent);
@@ -337,7 +337,7 @@ static void *serial_listen_thread_loop(void *pfd)
         while(true) {
             nread = read(f_fd, buf, sizeof(buf));
             if(END_MESSAGE == buf[nread - 1]) {
-                process_cmd_from_radio(buf, nread);
+                (void)process_cmd_from_radio(buf, nread);
             } else {
                 printf("serial_listen_thread_loop: invalid message. Read %d bytes:", nread);
                 for(n = 0; n < nread; n++) {

@@ -46,7 +46,9 @@
 #include "flslider2.h"
 
 #include "progdefaults.h"
+#include "ic7300.h"
 #include "scope_waveform_data.h"
+#include "serial.h"
 
 using namespace std;
 
@@ -1165,40 +1167,15 @@ void do_qsy(bool dir)
 
 void qsy_cb(Fl_Widget *w, void *v)
 {
-//    static unsigned int idx = 0;
-//    static unsigned int first_point_n = 0;
-//    unsigned int  n_points;
-//    unsigned char div_num;
-//
-//    waterfall* wf = static_cast<waterfall*>(w->parent());
-//
-//    div_num = fake_scope_data[idx].division_number;
-
     if (Fl::event_button() == FL_LEFT_MOUSE) {
-
-//        printf("fake_scope_data[%d].division_number=%X\n", idx, div_num);
-//
-//        if(1 == div_num) {
-//            first_point_n = 0;
-//        } else {
-//            n_points = LAST_DIVISION_NUMBER == div_num ? SCOPE_DATA_ARRAY_SIZE_LAST : SCOPE_DATA_ARRAY_SIZE;
-//            wf->wfdisp->process_analog(
-//                const_cast<unsigned char *>(fake_scope_data[idx].extended_info_or_data.data),
-//                first_point_n, n_points);
-//
-//            first_point_n += n_points;
-//        }
-//
-//        if(++idx >= FAKE_SCOPE_DATA_ARRAY_SIZE) {
-//            idx = 0;
-//        }
+        //send_scope_on();
+        send_scope_wave_output_on();
     } else if (Fl::event_button() == FL_RIGHT_MOUSE) {
         start_scope_waveform_thread();
     } else if (Fl::event_button() == FL_MIDDLE_MOUSE) {
         stop_scope_waveform_thread();
     }
 
-//if(idx++ >= sizeof(fake_scope_data[0].extended_info_or_data.data) / sizeof(fake_scope_data[0].extended_info_or_data.data[0])) {
 //DW    if (Fl::event_button() != FL_RIGHT_MOUSE)
 //DW        do_qsy(true);
 //DW    else

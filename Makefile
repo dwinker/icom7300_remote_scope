@@ -13,7 +13,7 @@ serial.o: serial.cxx serial.h ic7300.h
 	$(CC) $(CFLAGS) -c serial.cxx
 
 ic7300.o: ic7300.cxx ic7300.h
-	$(CC) $(CFLAGS) -c ic7300.cxx
+	$(CC) $(CFLAGS) -c -I. -I./include ic7300.cxx
 
 scope_waveform_data.o: scope_waveform_data.cxx
 	$(CC) $(CFLAGS) -c -I. -I./include scope_waveform_data.cxx

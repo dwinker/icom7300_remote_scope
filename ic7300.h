@@ -1,6 +1,12 @@
 #ifndef IC7300_H
 #define IC7300_H
 
+// From page 19-13 of IC-7300 FULL MANUAL. PARSE_FIXED_EDGE_FREQUENCY() will
+// convert the BCD encoded frequency into an unsigned long of frequency in Hz.
+#define BCD(x) (((x >> 4) * 10) + (x & 0x0F))
+#define PARSE_FIXED_EDGE_FREQUENCY(x3, x4, x5, x6, x7) \
+    (1ul*BCD(x3) + 100ul*BCD(x4) + 10000ul*BCD(x5) + 1000000ul*BCD(x6) + 100000000ul*BCD(x7))
+
 // These are per the "Data format" section of the Full Manual.
 const unsigned char PREAMBLE    = 0xFE;
 const unsigned char XCVR_ADDR   = 0x94; // Transceiver's default address
@@ -32,10 +38,17 @@ struct scope_waveform_data_tag {
     unsigned char division_number_max;
     union extended_info_or_data {
         struct extended_info_tag {
-            /* TBD - Guess for now. */
             unsigned char  center_or_fixed;
-            unsigned long  waveform_info_1;
-            unsigned long  waveform_info_2;
+            unsigned char  info_03;
+            unsigned char  info_04;
+            unsigned char  info_05;
+            unsigned char  info_06;
+            unsigned char  info_07;
+            unsigned char  info_08;
+            unsigned char  info_09;
+            unsigned char  info_10;
+            unsigned char  info_11;
+            unsigned char  info_12;
             unsigned char  out_of_range;
         } extended_info;
         unsigned char data[SCOPE_DATA_ARRAY_SIZE];

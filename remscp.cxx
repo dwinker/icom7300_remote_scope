@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
@@ -14,14 +15,12 @@ static void do_fltk(void);
 
 int main(int argc, char **argv)
 {
-    int serial_flag = 0;
     int c;
     int retval;
 
     static const struct option long_options[] =
     {
         {"device", required_argument, 0, 'd'},
-        {"serial", no_argument,       0, 's'},
         {0, 0, 0, 0}
     };
 
@@ -30,17 +29,13 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    while (-1 != (c = getopt_long(argc, argv, "d:s", long_options, &option_index)))
+    while (-1 != (c = getopt_long(argc, argv, "d:", long_options, &option_index)))
     {
         switch (c)
         {
             case 'd':
               printf ("option -d with value `%s'\n", optarg);
               devStr = optarg;
-              break;
-            case 's':
-              puts ("option -s");
-              serial_flag = 1;
               break;
             case '?':
               /* getopt_long already printed an error message. */
@@ -51,39 +46,12 @@ int main(int argc, char **argv)
         }
     }
 
-    if(serial_flag) {
-        int c = 0;
-        (void)serial_init(devStr);
-        do {
-            if('\n' != c)
-                puts("S/s - scope on/off, W/w - wave output on/off, q - QUIT");
-            c = getchar();
-            switch(c) {
-                case 'S':
-                    send_scope_on();
-                    break;
-                case 's':
-                    send_scope_off();
-                    break;
-                case 'W':
-                    send_scope_wave_output_on();
-                    break;
-                case 'w':
-                    send_scope_wave_output_off();
-                    break;
-                //case 'g':
-                    //get_scope_waveform_data();
-                    //break;
-                default:
-                    break;
-            }
-        } while('q' != c);
-        retval = serial_close();
-    } else {
-        init_progdefaults();
-        do_fltk();
-        retval = 0;
-    }
+    (void)serial_init(devStr);
+    init_progdefaults();
+    do_fltk();
+    send_scope_wave_output_off();
+    sleep(1);
+    retval = serial_close();
 
     return retval;
 }
