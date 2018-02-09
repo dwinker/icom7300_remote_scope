@@ -27,7 +27,7 @@ static pthread_t listen_thread;
 #ifdef CANON
     // The biggest message we should ever receive from the radio is less than
     // 256 bytes.
-    #define RECEIVE_BUFFER_SIZE (8*256)
+    #define RECEIVE_BUFFER_SIZE (256)
 #else
     // Measured approximately 29 '27 00 001 blocks in approximately 599 mS. So,
     // we're getting a block about once every 20 mS.  Most of these blocks are
@@ -352,10 +352,15 @@ static void *serial_listen_thread_loop(void *pfd)
         unsigned char buf[RECEIVE_BUFFER_SIZE];
 
         while(true) {
-            nread = read(f_fd, buf, sizeof(buf));
-            (void)process_cmd_from_radio(buf, nread);
-            if(END_MESSAGE != buf[nread - 1]) {
-                printf("serial_listen_thread_loop: short message. Read %d bytes:", nread);
+            nread = 0;
+            do {
+                nread += read(f_fd, buf + nread, sizeof(buf) - nread);
+            } while(END_MESSAGE != buf[nread - 1] && nread < (RECEIVE_BUFFER_SIZE - 1));
+
+            if(END_MESSAGE == buf[nread - 1]) {
+                (void)process_cmd_from_radio(buf, nread);
+            } else {
+                printf("serial_listen_thread_loop: no end message. Read %d bytes:", nread);
                 if(5 > nread)
                     for(n = 0; n < nread; n++)
                         printf(" %02X", buf[n]);
