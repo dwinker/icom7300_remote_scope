@@ -618,17 +618,17 @@ void WFdisp::sig_data(const unsigned char *sig,
 
 // Check the display offset & limit to 0 to max IMAGE_WIDTH displayed
 void WFdisp::checkoffset() {
-    if (mode == SCOPE) {
-        if (sigoffset < 0)
-            sigoffset = 0;
-        if (sigoffset > (disp_width - disp_width))
-            sigoffset = disp_width - disp_width;
-    } else {
-        if (offset > (int)(progdefaults.HighFreqCutoff - step * disp_width))
-            offset = (int)(progdefaults.HighFreqCutoff - step * disp_width);
-        if (offset < 0)
-            offset = 0;
-    }
+//DW     if (mode == SCOPE) {
+//DW         if (sigoffset < 0)
+//DW             sigoffset = 0;
+//DW         if (sigoffset > (disp_width - disp_width))
+//DW             sigoffset = disp_width - disp_width;
+//DW     } else {
+//DW         if (offset > (int)(progdefaults.HighFreqCutoff - step * disp_width))
+//DW             offset = (int)(progdefaults.HighFreqCutoff - step * disp_width);
+//DW         if (offset < 0)
+//DW             offset = 0;
+//DW     }
 }
 
 void WFdisp::setOffset(int v) {
@@ -666,14 +666,14 @@ int WFdisp::carrier() {
 
 void WFdisp::checkWidth()
 {
-    disp_width = w();
-    if (mag == MAG_1) step = 4;
-    if (mag == MAG_1 && disp_width > progdefaults.HighFreqCutoff/4)
-        disp_width = progdefaults.HighFreqCutoff/4;
-    if (mag == MAG_2) step = 2;
-    if (mag == MAG_2 && disp_width > progdefaults.HighFreqCutoff/2)
-        disp_width = progdefaults.HighFreqCutoff/2;
-    if (mag == MAG_4) step = 1;
+//DW     disp_width = w();
+//DW     if (mag == MAG_1) step = 4;
+//DW     if (mag == MAG_1 && disp_width > progdefaults.HighFreqCutoff/4)
+//DW         disp_width = progdefaults.HighFreqCutoff/4;
+//DW     if (mag == MAG_2) step = 2;
+//DW     if (mag == MAG_2 && disp_width > progdefaults.HighFreqCutoff/2)
+//DW         disp_width = progdefaults.HighFreqCutoff/2;
+//DW     if (mag == MAG_4) step = 1;
 }
 
 int WFdisp::checkMag()
