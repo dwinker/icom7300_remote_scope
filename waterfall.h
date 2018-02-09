@@ -128,9 +128,9 @@ public:
                          unsigned int first_x,
                          unsigned int width);
 	void processFFT();
-    void sig_data (unsigned char *sig,
-                   unsigned int  first_point_n,
-                   unsigned int  length);
+    void sig_data(const unsigned char *sig,
+                  unsigned int first_point_n,
+                  unsigned int length);
 	void handle_sig_data();
 	void rfcarrier(long long f) {
 		rfc = f;

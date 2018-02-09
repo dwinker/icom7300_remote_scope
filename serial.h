@@ -7,6 +7,6 @@ void send_scope_on(void);
 void send_scope_off(void);
 void send_scope_wave_output_on(void);
 void send_scope_wave_output_off(void);
-void get_scope_waveform_data(void);
+//void get_scope_waveform_data(void);
 
 #endif /* _SERIAL_H */

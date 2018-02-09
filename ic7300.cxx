@@ -130,31 +130,41 @@ static void process_scope_cmd_from_radio(const unsigned char *buf, int length)
     }
 }
 
-// We need persistent storage of the historical records for interpolation in
-// waterfall.cxx. Since we'll be copying from the serial port read around here,
-// this seems like a logical place to put the persistent storage.
-// TBD - Really?  Doesn't it seem like if waterfall.cxx needs the historical
-// data to do it's interpolation it should manage the persistent data?
-static unsigned char scope_data_span[SCOPE_DATA_SPAN_SIZE];
-
 static void process_scope_data_subcmd_from_radio(const unsigned char *buf, int length)
 {
-    const struct scope_waveform_data_tag *swd;
-    static unsigned int first_point_n = 0;
-    unsigned int  n_points;
+    const struct  scope_waveform_data_tag *swd;
+    unsigned char division_number;
+    unsigned int  first_point_n;
+    int           n_points;
+
+    // Magic number, but a short message shorter than this is pretty useless.
+    // If it's a division 1 there isn't enough there to decode the
+    // extended_info. If it's a data message there may be a few bytes of data,
+    // but not much. Seems reasonable to drop it.
+    if(16 > length)
+        return;
 
     swd = reinterpret_cast<const struct scope_waveform_data_tag *>(buf);
 
-    //printf("SCOPE_WAVEFORM_DATA_SUBCMD: %02X %02X %02X ... %02X\n",
-    //        buf[0], buf[1], buf[2], buf[length - 1]);
-    //printf("  fixed=%02X division_number=%02X division_number_max=%02X\n",
-    //        swd->fixed, swd->division_number, swd->division_number_max);
-    if(0x01 == swd->division_number) {
+    division_number = BCD(swd->division_number_bcd);
 
-        static unsigned long lower_edge_last = 0;
-        static unsigned long higher_edge_last = 0;
+    // Nothing to do if we don't understand division number.
+    if(11 < division_number)
+        return;
 
-        first_point_n = 0;
+    first_point_n = 2 <= division_number ? 50 * (division_number - 2) : 0;
+
+    // printf("SCOPE_WAVEFORM_DATA_SUBCMD: %02X %02X %02X ... %02X\n",
+    //         buf[0], buf[1], buf[2], buf[length - 1]);
+    // printf("  fixed=%02X division_number_bcd=%02X division_number_bcd_max=%02X\n",
+    //         swd->fixed, swd->division_number_bcd, swd->division_number_bcd_max);
+    if(1 == division_number) {
+
+        static unsigned long lower_edge_last      = 0;
+        static unsigned long higher_edge_last     = 0;
+        static unsigned char center_or_fixed_last = 255;
+        static unsigned char out_of_range_last    = 255;
+        // TBD add handling of changing center_or_fixed or out_of_range.
 
         unsigned long lower_edge = PARSE_FIXED_EDGE_FREQUENCY(
                 swd->extended_info_or_data.extended_info.info_03,
@@ -170,23 +180,31 @@ static void process_scope_data_subcmd_from_radio(const unsigned char *buf, int l
                 swd->extended_info_or_data.extended_info.info_11,
                 swd->extended_info_or_data.extended_info.info_12);
 
-        if(lower_edge_last != lower_edge || higher_edge_last != higher_edge) {
-            printf("center_or_fixed=%02X lower_edge=%lu higher_edge=%lu out_of_range=%02X\n",
+        if(lower_edge_last      != lower_edge  ||
+           higher_edge_last     != higher_edge ||
+           center_or_fixed_last != swd->extended_info_or_data.extended_info.center_or_fixed ||
+           out_of_range_last    != swd->extended_info_or_data.extended_info.out_of_range)
+        {
+
+            printf("  center_or_fixed=%02X lower_edge=%lu higher_edge=%lu out_of_range=%02X\n",
                 swd->extended_info_or_data.extended_info.center_or_fixed,
                 lower_edge,
                 higher_edge,
                 swd->extended_info_or_data.extended_info.out_of_range);
 
-            lower_edge_last  = lower_edge;
-            higher_edge_last = higher_edge;
+            lower_edge_last      = lower_edge;
+            higher_edge_last     = higher_edge;
+            center_or_fixed_last = swd->extended_info_or_data.extended_info.center_or_fixed;
+            out_of_range_last    = swd->extended_info_or_data.extended_info.out_of_range;
         }
 
     } else {
         n_points = length - (sizeof(*swd) - (sizeof(swd->extended_info_or_data.data)) + 1);
-        //printf("first_point_n=%u n_points=%u\n", first_point_n, n_points);
-        assert((first_point_n + n_points) <= (sizeof(scope_data_span) / sizeof(scope_data_span[0])));
-        memcpy(scope_data_span + first_point_n, swd->extended_info_or_data.data, n_points);
-        waterfall::get_waterfall()->sig_data(scope_data_span, first_point_n, n_points);
-        first_point_n += n_points;
+        // printf("  first_point_n=%u n_points=%u\n", first_point_n, n_points);
+        if(0 < n_points)
+            waterfall::get_waterfall()->sig_data(
+                const_cast<unsigned char *>(swd->extended_info_or_data.data),
+                first_point_n,
+                n_points);
     }
 }

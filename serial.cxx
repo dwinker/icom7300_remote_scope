@@ -228,30 +228,30 @@ void send_scope_wave_output_off(void)
 }
 
 
-void get_scope_waveform_data(void)
-{
-    unsigned char buf[200];
-    int nsent;
-    int n;
-    int i;
-
-    assert(f_fd);
-
-    for(i = 0; i < 10; i++) {
-        nsent = read(f_fd, buf, sizeof(buf));
-        printf("get_scope_waveform_data: try %d read %d bytes:", i, nsent);
-        for(n = 0; n < nsent; n++) {
-            printf(" %02X", buf[n]);
-        }
-        putchar('\n');
-    }
-
-    // Check for correct response.
-    puts( (CONT_ADDR   == buf[nsent - 4] &&
-           XCVR_ADDR   == buf[nsent - 3] &&
-           OK_CODE     == buf[nsent - 2] &&
-           END_MESSAGE == buf[nsent - 1]) ? "OK" : "No Good");
-}
+//void get_scope_waveform_data(void)
+//{
+//    unsigned char buf[200];
+//    int nsent;
+//    int n;
+//    int i;
+//
+//    assert(f_fd);
+//
+//    for(i = 0; i < 10; i++) {
+//        nsent = read(f_fd, buf, sizeof(buf));
+//        printf("get_scope_waveform_data: try %d read %d bytes:", i, nsent);
+//        for(n = 0; n < nsent; n++) {
+//            printf(" %02X", buf[n]);
+//        }
+//        putchar('\n');
+//    }
+//
+//    // Check for correct response.
+//    puts( (CONT_ADDR   == buf[nsent - 4] &&
+//           XCVR_ADDR   == buf[nsent - 3] &&
+//           OK_CODE     == buf[nsent - 2] &&
+//           END_MESSAGE == buf[nsent - 1]) ? "OK" : "No Good");
+//}
 
 // Mostly sets the serial port to raw. 
 static void serial_port_init(struct termios *ptio)
@@ -277,8 +277,25 @@ static void serial_port_init(struct termios *ptio)
     memset(ptio->c_cc, 0, sizeof(ptio->c_cc));
 
 #ifdef  CANON
+    // Canonical mode with only one control character - 0xFD as end of line.
     ptio->c_lflag |= ICANON;
-    ptio->c_cc[VEOL] = END_MESSAGE;
+    ptio->c_cc[VINTR]    = 0;
+    ptio->c_cc[VQUIT]    = 0;
+    ptio->c_cc[VERASE]   = 0;
+    ptio->c_cc[VKILL]    = 0;
+    ptio->c_cc[VEOF]     = 0;
+    ptio->c_cc[VTIME]    = 0;
+    ptio->c_cc[VMIN]     = 0;
+    ptio->c_cc[VSWTC]    = 0;
+    ptio->c_cc[VSTART]   = 0;
+    ptio->c_cc[VSTOP]    = 0;
+    ptio->c_cc[VSUSP]    = 0;
+    ptio->c_cc[VEOL]     = END_MESSAGE;
+    ptio->c_cc[VREPRINT] = 0;
+    ptio->c_cc[VDISCARD] = 0;
+    ptio->c_cc[VWERASE]  = 0;
+    ptio->c_cc[VLNEXT]   = 0;
+    ptio->c_cc[VEOL2]    = 0;
 #else
     // Wait 1 tenth second before returing read.  This makes a purely timed
     // read. read(f_fd...) will always take about 1/10 second.
@@ -336,12 +353,15 @@ static void *serial_listen_thread_loop(void *pfd)
 
         while(true) {
             nread = read(f_fd, buf, sizeof(buf));
-            if(END_MESSAGE == buf[nread - 1]) {
-                (void)process_cmd_from_radio(buf, nread);
-            } else {
-                printf("serial_listen_thread_loop: invalid message. Read %d bytes:", nread);
-                for(n = 0; n < nread; n++) {
-                    printf(" %02X", buf[n]);
+            (void)process_cmd_from_radio(buf, nread);
+            if(END_MESSAGE != buf[nread - 1]) {
+                printf("serial_listen_thread_loop: short message. Read %d bytes:", nread);
+                if(5 > nread)
+                    for(n = 0; n < nread; n++)
+                        printf(" %02X", buf[n]);
+                else {
+                    printf(" %02X %02X %02X %02X %02X ... %02X",
+                       buf[n], buf[n+1], buf[n+2], buf[n+3], buf[n+4], buf[nread-1]);
                 }
                 putchar('\n');
             }

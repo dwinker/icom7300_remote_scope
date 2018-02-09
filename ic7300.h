@@ -34,8 +34,8 @@ const int LAST_DIVISION_NUMBER       = 0x11;
 #pragma pack(push, 1)
 struct scope_waveform_data_tag {
     unsigned char fixed;
-    unsigned char division_number;
-    unsigned char division_number_max;
+    unsigned char division_number_bcd;
+    unsigned char division_number_bcd_max;
     union extended_info_or_data {
         struct extended_info_tag {
             unsigned char  center_or_fixed;

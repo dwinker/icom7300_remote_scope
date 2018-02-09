@@ -464,26 +464,27 @@ void WFdisp::redrawCursor()
 // This function stretches the data in the y direction to fill a display wider
 // in pixels than the number of data points we have, and this function
 // normalizes the values from 0.0 to 1.0;
-#define MAX_CHUNK_WIDTH 2000
-void WFdisp::sig_data (unsigned char *sig,
-                       unsigned int  first_point_n,
-                       unsigned int  length)
+#define MAX_CHUNK_WIDTH 256
+void WFdisp::sig_data(const unsigned char *sig,
+                      unsigned int first_point_n,
+                      unsigned int length)
 {
-    // This stays around because we often want last time's last value for this
+    // This stays around because we often need last time's last value for this
     // time's first interpolation.
-    static double sigy_normalized[MAX_CHUNK_WIDTH];
+    static unsigned char scope_data_span[SCOPE_DATA_SPAN_SIZE];
+
+    double sigy_normalized[MAX_CHUNK_WIDTH];
     static unsigned int first_sigx = 0;
     unsigned int  last_point_n;
     unsigned int  last_sigx;
     unsigned int  sigx;
 
-    // static bool armed = false;
-    if(first_point_n == 0) {
+    if(first_point_n == 0)
         first_sigx = 0;
-    //     if(armed)
-    //         exit(0);
-    //     armed = true;
-    }
+
+    assert((first_point_n + length) <= (sizeof(scope_data_span) / sizeof(scope_data_span[0])));
+
+    memcpy(scope_data_span + first_point_n, sig, length);
 
     last_point_n = first_point_n + length - 1;
     last_sigx    = last_point_n * (disp_width - 1) / (SCOPE_DATA_SPAN_SIZE - 1);
@@ -512,11 +513,12 @@ void WFdisp::sig_data (unsigned char *sig,
         npf =  ceil(nf);
         nmi = static_cast<int>(nmf);
         npi = static_cast<int>(npf);
-        data_a = sig[nmi];
-        data_b = sig[npi];
+        data_a = scope_data_span[nmi];
+        data_b = scope_data_span[npi];
 
         if(nmi == npi) {
-            // No interpolation. sigy equals sig[nmi] which is the same as sig[npi].
+            // No interpolation. scope_data_spany equals scope_data_span[nmi]
+            // which is the same as scope_data_span[npi].
             m = 0.0;
         } else {
             m = static_cast<double>(data_b - data_a) / (npf - nmf);
@@ -525,8 +527,8 @@ void WFdisp::sig_data (unsigned char *sig,
         sigy_normalized[sigx - first_sigx] = (static_cast<double>(data_a) + m * (nf - nmf)) /
                                               static_cast<double>(SCOPE_DATA_MAX_VALUE);
 
-        // printf("%7.3f %7.3f %7.3f %2d %2d %+7.3f %3d %3d %2d %f\n",
-        //         nf,   nmf,  npf,  nmi,npi,m, data_a, data_b, sigx, sigy_normalized[sigx - first_sigx]);
+        //printf("%7.3f %7.3f %7.3f %2d %2d %+7.3f %3d %3d %2d %f\n",
+        //        nf,   nmf,  npf,  nmi,npi,m, data_a, data_b, sigx, sigy_normalized[sigx - first_sigx]);
 
         sigx++;
     }
