@@ -14,6 +14,9 @@
 static void print_usage_exit(void);
 static void do_fltk(int width, int height);
 
+// When true don't open the serial port and use fake data.
+static bool fakeFlag = false;
+
 #define BORDER     10
 #define MAX_WIDTH  2048
 #define MAX_HEIGHT 2048
@@ -21,11 +24,12 @@ static void do_fltk(int width, int height);
 int main(int argc, char **argv)
 {
     int c;
-    int retval;
+    int retval = 0;
 
     static const struct option long_options[] =
     {
         {"device",   required_argument, 0, 'd'},
+        {"fake",     no_argument,       0, 'f'},
         {"geometry", optional_argument, 0, 'g'},
         {0, 0, 0, 0}
     };
@@ -39,13 +43,17 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    while (-1 != (c = getopt_long(argc, argv, "d:g:", long_options, &option_index)))
+    while (-1 != (c = getopt_long(argc, argv, "d:fg:", long_options, &option_index)))
     {
         switch (c)
         {
             case 'd':
               printf ("option -d with value '%s'\n", optarg);
               devStr = optarg;
+              break;
+            case 'f':
+              puts ("option -f");
+              fakeFlag = true;
               break;
             case 'g':
               printf ("option -g with value '%s'\n", optarg);
@@ -62,12 +70,17 @@ int main(int argc, char **argv)
         }
     }
 
-    (void)serial_init(devStr);
+    if(!fakeFlag)
+        (void)serial_init(devStr);
+
     init_progdefaults();
     do_fltk(width_opt, height_opt);
-    send_scope_wave_output_off();
-    sleep(1);
-    retval = serial_close();
+
+    if(!fakeFlag) {
+        send_scope_wave_output_off();
+        sleep(1);
+        retval = serial_close();
+    }
 
     return retval;
 }
