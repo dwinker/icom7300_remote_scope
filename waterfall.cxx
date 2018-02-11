@@ -380,43 +380,48 @@ void WFdisp::process_analog (double *sigy_normalized,
                              unsigned int  first_x,
                              unsigned int  width)
 {
-    unsigned int h0, ynext;
+    unsigned int ymax, ynext;
     static unsigned int ylast;
     unsigned int sigx, sigpixel;
-    int white, graylevel;
+    const int WHITE      = 255;
+    const int GRAYLEVEL  =  50; // Set to 50 to see data points brighter than lines.
+    const int BACKGROUND =  25; // Set to 0 for black background, 25 to check background.
 
-    h0 = h();
-    white     = 255;
-    graylevel = 255;    // Set to 100 to see data points brighter than lines.
+    ymax = h() - 1;   // TBD - Isn't there a height member like disp_width we could use here instead?
 
     if(0 == first_x)
-        ylast = h0;
+        ylast = ymax;
 
     sigx = first_x;
     for(unsigned int i = 0; i < width; i++) {
 
         // Clear this column.
-        for(unsigned int y = 0; y < h0; y++) {
-            sig_img[sigx + y * disp_width] = 0;
+        for(unsigned int y = 0; y <= ymax; y++) {
+            sigpixel = sigx + y * disp_width;
+            //assert(sig_image_area > sigpixel);
+            sig_img[sigpixel] = BACKGROUND;
         }
 
         assert(1.0 >= sigy_normalized[i]);
-        ynext = static_cast<unsigned int>((h0 * (1.0 - sigy_normalized[i])));
+        ynext = static_cast<unsigned int>((ymax * (1.0 - sigy_normalized[i])));
 
         while(ylast < ynext) {
             sigpixel = sigx + ylast * disp_width;
-            sig_img[sigpixel] = graylevel;
+            //assert(sig_image_area > sigpixel);
+            sig_img[sigpixel] = GRAYLEVEL;
             ylast++;
         }
 
         while(ylast > ynext) {
             sigpixel = sigx + ylast * disp_width;
-            sig_img[sigpixel] = graylevel;
+            //assert(sig_image_area > sigpixel);
+            sig_img[sigpixel] = GRAYLEVEL;
             ylast--;
         }
 
         sigpixel = sigx + ynext * disp_width;
-        sig_img[sigpixel] = white;
+        //assert(sig_image_area > sigpixel);
+        sig_img[sigpixel] = WHITE;
         sigx++;
     }
     redraw();
@@ -427,39 +432,6 @@ void WFdisp::redrawCursor()
     redraw();
 //  cursormoved = true;
 }
-
-//DW extern state_t trx_state;
-
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// XXXXX This was a try at using queues. May be needed later.
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// XXXXX static pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
-// XXXXX struct scope_data_block_tag {
-// XXXXX    unsigned char sig[SCOPE_DATA_ARRAY_SIZE];
-// XXXXX    unsigned int  first_point_n;
-// XXXXX    unsigned int  length;
-// XXXXX };
-// XXXXX queue<scope_data_block_tag> scope_data_blocks;
-// XXXXX 
-// XXXXX void WFdisp::sig_data (unsigned char *sig,
-// XXXXX                        unsigned int  first_point_n,
-// XXXXX                        unsigned int  length)
-// XXXXX {
-// XXXXX     struct scope_data_block_tag sdb;
-// XXXXX 
-// XXXXX     assert(length <= sizeof(sdb.sig));
-// XXXXX 
-// XXXXX     memcpy(sdb.sig, sig, length);
-// XXXXX     sdb.first_point_n = first_point_n;
-// XXXXX     sdb.length        = length;
-// XXXXX 
-// XXXXX    pthread_mutex_lock(&data_mutex);
-// XXXXX     scope_data_blocks.push(sdb);
-// XXXXX    pthread_mutex_unlock(&data_mutex);
-// XXXXX 
-// XXXXX    REQ(&WFdisp::handle_sig_data, this);
-// XXXXX }
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 // This function stretches the data in the y direction to fill a display wider
 // in pixels than the number of data points we have, and this function

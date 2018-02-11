@@ -161,7 +161,7 @@ private:
 	int RGBsize;
 	int image_height;
 	int image_area;
-	int sig_image_area;
+	unsigned int sig_image_area;
 	int	mag;
 	int magset;
 	WFmode	mode;
