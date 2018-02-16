@@ -70,8 +70,6 @@ using namespace std;
                 cwCnt + wSpace + bwQsy + wSpace + bwMem + wSpace + \
                 bwXmtLock + wSpace + bwRev + wSpace + bwXmtRcv + wSpace)
 
-//DW extern modem *active_modem;
-
 static  RGB RGByellow   = {254,254,0};
 //static    RGB RGBgreen    = {0,254,0};
 //static    RGB RGBdkgreen  = {0,128,0};
@@ -87,9 +85,17 @@ static  RGB RGBred      = {254,0,0};
 // the INTENSITY value is used for the grayscale waterfall display
 
 RGBI    mag2RGBI[256];
-RGB     palette[9];
-
-short int *tmp_fft_db;
+// Force palette from ~/.fldigi/paletts/default.pal
+RGB     palette[9] = {
+        {  0,  0,  0},
+        {  0,  6,136},
+        {  0, 19,198},
+        {  0, 32,239},
+        {172,167,105},
+        {194,198, 49},
+        {225,228,107},
+        {255,255,  0},
+        {255, 51,  0}};
 
 // Sort of a singelton.
 waterfall *waterfall::wf = NULL;
@@ -97,8 +103,6 @@ waterfall *waterfall::get_waterfall(void)
 {
     return wf;
 }
-
-//DW static pthread_mutex_t waterfall_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 WFdisp::WFdisp (int x0, int y0, int w0, int h0, char *lbl) :
               Fl_Widget(x0,y0,w0,h0,"") {
@@ -113,11 +117,11 @@ WFdisp::WFdisp (int x0, int y0, int w0, int h0, char *lbl) :
     markerimage     = new RGB[scale_width * WFMARKER];
     scaleimage      = new uchar[scale_width * WFSCALE];
     scline          = new uchar[scale_width];
-    fft_sig_img     = new uchar[image_area];
     sig_img         = new uchar[sig_image_area];
 
     mag = 1;
-    step = 4;
+//DW     step = 4;
+    step = 1;
     offset = 0;
     sigoffset = 0;
     ampspan = 75;
@@ -140,8 +144,6 @@ WFdisp::WFdisp (int x0, int y0, int w0, int h0, char *lbl) :
     wfspeed = NORMAL;
     srate = 8000;
     wfspdcnt = 0;
-//DW    dispcnt = 1.0 * WFBLOCKSIZE / SC_SMPLRATE;
-//DW    dispdec = 1.0 * WFBLOCKSIZE / srate;
     wantcursor = false;
     cursormoved = false;
 
@@ -149,9 +151,6 @@ WFdisp::WFdisp (int x0, int y0, int w0, int h0, char *lbl) :
 
     oldcarrier = newcarrier = 0;
     tmp_carrier = false;
-
-    for (int i = 0; i < 256; i++)
-        mag2RGBI[i].I = mag2RGBI[i].R = mag2RGBI[i].G = mag2RGBI[i].B = 0;
 }
 
 WFdisp::~WFdisp() {
@@ -380,49 +379,52 @@ void WFdisp::process_analog (double *sigy_normalized,
                              unsigned int  first_x,
                              unsigned int  width)
 {
+    double sigy_norm;
     unsigned int ymax, ynext;
     static unsigned int ylast;
-    unsigned int sigx, sigpixel;
+    unsigned int x, sigpixel;
     const int WHITE      = 255;
     const int GRAYLEVEL  =  50; // Set to 50 to see data points brighter than lines.
     const int BACKGROUND =  25; // Set to 0 for black background, 25 to check background.
 
-    ymax = h() - 1;   // TBD - Isn't there a height member like disp_width we could use here instead?
+    ymax = (h()/3) - 1;   // TBD - Isn't there a height member like disp_width we could use here instead?
 
     if(0 == first_x)
         ylast = ymax;
 
-    sigx = first_x;
+    x = first_x;
     for(unsigned int i = 0; i < width; i++) {
 
         // Clear this column.
         for(unsigned int y = 0; y <= ymax; y++) {
-            sigpixel = sigx + y * disp_width;
+            sigpixel = x + y * disp_width;
             //assert(sig_image_area > sigpixel);
             sig_img[sigpixel] = BACKGROUND;
         }
 
-        assert(1.0 >= sigy_normalized[i]);
-        ynext = static_cast<unsigned int>((ymax * (1.0 - sigy_normalized[i])));
+        sigy_norm= sigy_normalized[i];
+        assert(1.0 >= sigy_norm);
+        ynext = static_cast<unsigned int>((ymax * (1.0 - sigy_norm)));
 
         while(ylast < ynext) {
-            sigpixel = sigx + ylast * disp_width;
+            sigpixel = x + ylast * disp_width;
             //assert(sig_image_area > sigpixel);
             sig_img[sigpixel] = GRAYLEVEL;
             ylast++;
         }
 
         while(ylast > ynext) {
-            sigpixel = sigx + ylast * disp_width;
+            sigpixel = x + ylast * disp_width;
             //assert(sig_image_area > sigpixel);
             sig_img[sigpixel] = GRAYLEVEL;
             ylast--;
         }
 
-        sigpixel = sigx + ynext * disp_width;
+        sigpixel = x + ynext * disp_width;
         //assert(sig_image_area > sigpixel);
         sig_img[sigpixel] = WHITE;
-        sigx++;
+
+        x++;
     }
     redraw();
 }
@@ -446,17 +448,19 @@ void WFdisp::sig_data(const unsigned char *sig,
     static unsigned char scope_data_span[SCOPE_DATA_SPAN_SIZE];
 
     double sigy_normalized[MAX_CHUNK_WIDTH];
-    static unsigned int first_sigx = 0;
-    unsigned int  last_point_n;
-    unsigned int  last_sigx;
-    unsigned int  sigx;
-
-    if(first_point_n == 0)
-        first_sigx = 0;
+    unsigned int first_sigx;
+    unsigned int last_point_n;
+    unsigned int last_sigx;
+    unsigned int sigx;
 
     assert((first_point_n + length) <= (sizeof(scope_data_span) / sizeof(scope_data_span[0])));
 
     memcpy(scope_data_span + first_point_n, sig, length);
+
+    if(0 == first_point_n)
+        first_sigx = 0;
+    else
+        first_sigx = 1 + (first_point_n - 1) * (disp_width - 1) / (SCOPE_DATA_SPAN_SIZE - 1);
 
     last_point_n = first_point_n + length - 1;
     last_sigx    = last_point_n * (disp_width - 1) / (SCOPE_DATA_SPAN_SIZE - 1);
@@ -506,14 +510,10 @@ void WFdisp::sig_data(const unsigned char *sig,
     }
 
     Fl::lock();
-
-    process_analog(sigy_normalized, first_sigx, last_sigx - first_sigx + 1);
-
+    process_analog(  sigy_normalized, first_sigx, last_sigx - first_sigx + 1);
+    update_waterfall(sigy_normalized, first_sigx, last_sigx - first_sigx + 1);
     Fl::unlock();
     Fl::awake();
-
-    // Ready for next time.
-    first_sigx = sigx;
 }
 
 //DW void WFdisp::handle_sig_data()
@@ -749,266 +749,43 @@ void WFdisp::drawMarker() {
         step * RGBsize, RGBwidth);
 }
 
-void WFdisp::update_waterfall() {
-// transfer the fft history data into the WF image
-//DW    short int * __restrict__ p1, * __restrict__ p2;
-//DW    RGBI * __restrict__ p3, * __restrict__ p4;
-//DW    p1 = tmp_fft_db + offset + step/2;
-//DW    p2 = p1;
-//DW    p3 = fft_img;
-//DW    p4 = p3;
-//DW 
-//DW    short*  __restrict__ limit = tmp_fft_db + image_area - step + 1;
-//DW 
-#define UPD_LOOP( Step, Operation ) \
-case Step: for (int row = 0; row < image_height; row++) { \
-        p2 = p1; \
-        p4 = p3; \
-        for ( const short *  __restrict__ last_p2 = std::min( p2 + Step * disp_width, limit +1 ); p2 < last_p2; p2 += Step ) { \
-            *(p4++) = mag2RGBI[ Operation ]; \
-        } \
-        p1 += IMAGE_WIDTH; \
-        p3 += disp_width; \
-    }; break
+void WFdisp::update_waterfall (double *sigy_normalized,
+                             unsigned int  first_x,
+                             unsigned int  width)
+{
+   double * __restrict__ sigy_norm;
+   RGBI   * __restrict__ rgbi;
 
-//DW    if (progdefaults.WFaveraging) {
-//DW        switch(step) {
-//DW            UPD_LOOP( 4, (*p2 + *(p2+1) + *(p2+2) + *(p2-1) + *(p2-1))/5 );
-//DW            UPD_LOOP( 2, (*p2 + *(p2+1) + *(p2-1))/3 );
-//DW            UPD_LOOP( 1, *p2 );
-//DW            default:;
-//DW        }
-//DW    } else {
-//DW        switch(step) {
-//DW            UPD_LOOP( 4, MAX( MAX( MAX ( MAX ( *p2, *(p2+1) ), *(p2+2) ), *(p2-2) ), *(p2-1) ) );
-//DW            UPD_LOOP( 2, MAX( MAX( *p2, *(p2+1) ), *(p2-1) ) );
-//DW            UPD_LOOP( 1, *p2 );
-//DW            default:;
-//DW        }
-//DW    }
-//DW #undef UPD_LOOP
-//DW 
-//DW    if (active_modem && progdefaults.UseBWTracks) {
-//DW        int bw_lo = bandwidth / 2;
-//DW        int bw_hi = bandwidth / 2;
-//DW        trx_mode mode = active_modem->get_mode();
-//DW        if (mode >= MODE_MT63_500S && mode <= MODE_MT63_2000L)
-//DW            bw_hi = bw_hi * 31 / 32;
-//DW        if (mode == MODE_FSQ || mode == MODE_IFKP) {
-//DW            bw_hi = bw_lo = 69 * bandwidth / 100;
-//DW        }
-//DW        RGBI  *pos1 = fft_img + (carrierfreq - offset - bw_lo) / step;
-//DW        RGBI  *pos2 = fft_img + (carrierfreq - offset + bw_hi) / step;
-//DW        if (unlikely(pos2 == fft_img + disp_width))
-//DW            pos2--;
-//DW        if (likely(pos1 >= fft_img && pos2 < fft_img + disp_width)) {
-//DW            RGBI rgbi1, rgbi2 ;
-//DW 
-//DW            if (mode == MODE_RTTY && progdefaults.useMARKfreq) {
-//DW                if (active_modem->get_reverse()) {
-//DW                    rgbi1 = progdefaults.rttymarkRGBI;
-//DW                    rgbi2 = progdefaults.bwTrackRGBI;
-//DW                } else {
-//DW                    rgbi1 = progdefaults.bwTrackRGBI;
-//DW                    rgbi2 = progdefaults.rttymarkRGBI;
-//DW                }
-//DW            } else {
-//DW                rgbi1 = progdefaults.bwTrackRGBI;
-//DW                rgbi2 = progdefaults.bwTrackRGBI;
-//DW            }
-//DW            if (progdefaults.UseWideTracks) {
-//DW                for (int y = 0; y < image_height; y ++) {
-//DW                    *(pos1 + 1) = *pos1 = rgbi1;
-//DW                    *(pos2 - 1) = *pos2 = rgbi2;
-//DW                    pos1 += disp_width;
-//DW                    pos2 += disp_width;
-//DW                }
-//DW            } else {
-//DW                for (int y = 0; y < image_height; y ++) {
-//DW                    *pos1 = rgbi1;
-//DW                    *pos2 = rgbi2;
-//DW                    pos1 += disp_width;
-//DW                    pos2 += disp_width;
-//DW                }
-//DW            }
-//DW        }
-//DW    }
-//DW 
-//DW // draw notch
-//DW    if ((notch_frequency > 1) && (notch_frequency < progdefaults.HighFreqCutoff - 1)) {
-//DW        RGBInotch.I = progdefaults.notchRGBI.I;
-//DW        RGBInotch.R = progdefaults.notchRGBI.R;
-//DW        RGBInotch.G = progdefaults.notchRGBI.G;
-//DW        RGBInotch.B = progdefaults.notchRGBI.B;
-//DW        RGBI  *notch = fft_img + (notch_frequency - offset) / step;
-//DW        int dash = 0;
-//DW        for (int y = 0; y < image_height; y++) {
-//DW            dash = (dash + 1) % 6;
-//DW            if (dash == 0 || dash == 1 || dash == 2)
-//DW                *(notch-1) = *notch = *(notch+1) = RGBInotch;
-//DW            notch += disp_width;
-//DW        }
-//DW    }
-//DW 
-//DW    if (progdefaults.show_psm_btn &&
-//DW        progStatus.kpsql_enabled && 
-//DW        (trx_state == STATE_RX))
-//DW        signal_psm();
+   sigy_norm = sigy_normalized;
+   rgbi      = &fft_img[first_x];
+
+   while(width--) {
+      unsigned char sig;
+      sig = static_cast<unsigned char>(round(*sigy_norm * 255.0));
+      for(int y = 0; y < 40; y++) {
+        *(rgbi +  y * disp_width) = mag2RGBI[sig];
+      }
+      //printf("%d %d %d %d %d\n", sig, rgbi->R, rgbi->G, rgbi->B, rgbi->I);
+      sigy_norm++;
+      rgbi++;
+   }
 }
 
-void WFdisp::drawcolorWF() {
+void WFdisp::drawcolorWF()
+{
     uchar *pixmap = (uchar *)fft_img;
 
-    update_waterfall();
-
-//DW    if (active_modem && wantcursor &&
-//DW        (progdefaults.UseCursorLines || progdefaults.UseCursorCenterLine) ) {
-//DW        trx_mode mode = active_modem->get_mode();
-//DW        int bw_lo = bandwidth / 2;
-//DW        int bw_hi = bandwidth / 2;
-//DW        if (mode >= MODE_MT63_500S && mode <= MODE_MT63_2000L)
-//DW            bw_hi = bw_hi * 31 / 32;
-//DW        if (mode == MODE_FSQ || mode == MODE_IFKP) bw_hi = bw_hi * 32 / 33;
-//DW        RGBI  *pos0 = (fft_img + cursorpos);
-//DW        RGBI  *pos1 = (fft_img + cursorpos - bw_lo/step);
-//DW        RGBI  *pos2 = (fft_img + cursorpos + bw_hi/step);
-//DW        if (pos1 >= fft_img && pos2 < fft_img + disp_width)
-//DW            for (int y = 0; y < image_height; y ++) {
-//DW                if (progdefaults.UseCursorLines) {
-//DW                    *pos1 = *pos2 = progdefaults.cursorLineRGBI;
-//DW                    if (progdefaults.UseWideCursor)
-//DW                        *(pos1 + 1) = *(pos2 - 1) = *pos1;
-//DW                }
-//DW                if (progdefaults.UseCursorCenterLine) {
-//DW                    *pos0 = progdefaults.cursorCenterRGBI;
-//DW                    if (progdefaults.UseWideCenter)
-//DW                        *(pos0 - 1) = *(pos0 + 1) = *pos0;
-//DW                }
-//DW                pos0 += disp_width;
-//DW                pos1 += disp_width;
-//DW                pos2 += disp_width;
-//DW            }
-//DW    }
-
-    fl_color(FL_BLACK);
-    fl_rectf(x(), y(), w(), WFSCALE + WFMARKER + WFTEXT);
-    fl_color(fl_rgb_color(palette[0].R, palette[0].G, palette[0].B));
-    fl_rectf(x(), y() + WFSCALE + WFMARKER + WFTEXT, w(), image_height);
+    fl_color(FL_BLUE);
+    //DW fl_rectf(x(), y(), w(), WFSCALE + WFMARKER + WFTEXT);
+    //DW fl_color(fl_rgb_color(palette[0].R, palette[0].G, palette[0].B));
+    //DW fl_rectf(x(), y() + WFSCALE + WFMARKER + WFTEXT, w(), image_height);
+    fl_rectf(x(), y(), w(), image_height);
     fl_draw_image(
         pixmap, x(), y() + WFSCALE + WFMARKER + WFTEXT,
-        disp_width, image_height,
+        disp_width, 40 /* image_height */,
         sizeof(RGBI), disp_width * sizeof(RGBI) );
-    drawScale();
-}
-
-void WFdisp::drawspectrum() {
-    int sig;
-    long offset_idx = 0;
-    long ynext,
-        h1 = image_height - 1,
-        ffty = 0,
-        fftpixel = disp_width * h1,
-        graylevel = 220;
-    uchar *pixmap = (uchar *)fft_sig_img + offset / step;
-
-    memset (fft_sig_img, 0, image_area);
-
-    fftpixel /= step;
-    for (int c = 0; c < disp_width; c += step) {
-        sig = tmp_fft_db[c];
-        if (step == 1)
-            sig = tmp_fft_db[c];
-        else if (step == 2)
-            sig = MAX(tmp_fft_db[c], tmp_fft_db[c+1]);
-        else
-            sig = MAX( MAX ( MAX ( tmp_fft_db[c], tmp_fft_db[c+1] ), tmp_fft_db[c+2] ), tmp_fft_db[c+3]);
-        ynext = h1 * sig / 256;
-        offset_idx = (disp_width/step);
-        while ((ffty < ynext)) {
-            fft_sig_img[fftpixel -= offset_idx] = graylevel; 
-            ffty++;
-            if (fftpixel < offset_idx) {
-                cout << "corrupt index 1\n";
-                break;
-            }
-        }
-        while ((ffty > ynext)) {
-            fft_sig_img[fftpixel += offset_idx] = graylevel; 
-            ffty--;
-            if (fftpixel >= (image_area - 1)) {
-                cout << "corrupt index 2\n";
-                break;
-            }
-        }
-        if (fftpixel >= 0 && fftpixel <= image_area)
-            fft_sig_img[fftpixel++] = graylevel;
-        else
-            cout << "fft_sig_image index out of bounds: " << fftpixel << endl;
-    }
-
-//DW    if (progdefaults.UseBWTracks) {
-//DW        uchar  *pos1 = pixmap + (carrierfreq - offset - bandwidth/2) / step;
-//DW        uchar  *pos2 = pixmap + (carrierfreq - offset + bandwidth/2) / step;
-//DW        if (pos1 >= pixmap &&
-//DW            pos2 < pixmap + disp_width)
-//DW            for (int y = 0; y < image_height; y ++) {
-//DW                *pos1 = *pos2 = 255;
-//DW                if (progdefaults.UseWideTracks) {
-//DW                    *(pos1 + 1) = 255;
-//DW                    *(pos2 - 1) = 255;
-//DW                }
-//DW                pos1 += IMAGE_WIDTH/step;
-//DW                pos2 += IMAGE_WIDTH/step;
-//DW            }
-//DW    }
-//DW    if (active_modem && wantcursor &&
-//DW        (progdefaults.UseCursorLines || progdefaults.UseCursorCenterLine)) {
-//DW        trx_mode mode = active_modem->get_mode();
-//DW        int bw_lo = bandwidth / 2;
-//DW        int bw_hi = bandwidth / 2;
-//DW        if (mode >= MODE_MT63_500S && mode <= MODE_MT63_2000L)
-//DW            bw_hi = bw_hi * 31 / 32;
-//DW        if (mode == MODE_FSQ || mode == MODE_IFKP) bw_hi = bw_hi * 32 / 33;
-//DW        uchar  *pos0 = pixmap + cursorpos;
-//DW        uchar  *pos1 = (pixmap + cursorpos - bw_lo/step);
-//DW        uchar  *pos2 = (pixmap + cursorpos + bw_hi/step);
-//DW        for (int y = 0; y < h1; y ++) {
-//DW            if (progdefaults.UseCursorLines) {
-//DW                *pos1 = *pos2 = 255;
-//DW                if (progdefaults.UseWideCursor)
-//DW                    *(pos1 + 1) = *(pos2 - 1) = *pos1;
-//DW            }
-//DW            if (progdefaults.UseCursorCenterLine) {
-//DW                *pos0 = 255;
-//DW                if (progdefaults.UseWideCenter) *(pos0-1) = *(pos0+1) = *(pos0);
-//DW            }
-//DW            pos0 += IMAGE_WIDTH/step;
-//DW            pos1 += IMAGE_WIDTH/step;
-//DW            pos2 += IMAGE_WIDTH/step;
-//DW        }
-//DW    }
-
-//DW // draw notch
-//DW    if ((notch_frequency > 1) && (notch_frequency < progdefaults.HighFreqCutoff - 1)) {
-//DW        uchar  *notch = pixmap + (notch_frequency - offset) / step;
-//DW        int dash = 0;
-//DW        for (int y = 0; y < image_height; y++) {
-//DW            dash = (dash + 1) % 6;
-//DW            if (dash == 0 || dash == 1 || dash == 2)
-//DW                *(notch-1) = *notch = *(notch+1) = 255;
-//DW            notch += IMAGE_WIDTH/step;
-//DW        }
-//DW    }
-
-    fl_color(FL_BLACK);
-    fl_rectf(x(), y(), w(), WFSCALE + WFMARKER + WFTEXT + image_height);
-
-    fl_draw_image_mono(
-        pixmap,
-        x(), y() + WFSCALE + WFMARKER + WFTEXT,
-        disp_width, image_height,
-        1, disp_width / step);
-    drawScale();
+    //DW drawScale();
+    redraw();
 }
 
 void WFdisp::drawsignal() {
@@ -1024,16 +801,10 @@ void WFdisp::draw() {
     checkoffset();
     checkWidth();
 
-//DW    if (progdefaults.show_psm_btn && progStatus.kpsql_enabled) {
-//DW        drawcolorWF();
-//DW        drawMarker();
-//DW        return;
-//DW    }
-
     switch (mode) {
     case SPECTRUM :
-        drawspectrum();
-        drawMarker();
+        drawsignal();
+        drawcolorWF();
         break;
     case SCOPE :
         drawsignal();
@@ -1041,7 +812,8 @@ void WFdisp::draw() {
     case WATERFALL :
     default:
         drawcolorWF();
-        drawMarker();
+        //DW drawMarker();
+        break;
     }
 }
 

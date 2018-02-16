@@ -115,7 +115,9 @@ public:
 	void draw();
 	int handle(int event);
 	void update_sigmap();
-	void update_waterfall();
+    void update_waterfall (double *sigy_normalized,
+                             unsigned int  first_x,
+                             unsigned int  width);
 	void checkoffset();
 	void slew(int);
 	void movetocenter();
@@ -190,11 +192,8 @@ private:
 	RGBI		RGBInotch;
     double  *fftwindow;
 	uchar	*scaleimage;
-	uchar	*fft_sig_img;
 	uchar	*sig_img;
 	uchar	*scline;
-
-//DW 	wf_cpx_type *wfbuf;
 
 	int checkMag();
 	void checkWidth();
@@ -205,7 +204,6 @@ private:
 
 	void drawcolorWF();
 	void drawgrayWF();
-	void drawspectrum();
 	void drawsignal();
 
 
