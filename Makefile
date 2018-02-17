@@ -29,7 +29,7 @@ flslider2.o: flslider2.cxx include/config.h include/pkg.h include/util.h include
 	g++ -DHAVE_CONFIG_H -I. -DBUILD_FLDIGI -DLOCALEDIR=\"/usr/local/share/locale\" -I./include -I./irrxml -I./libtiniconv -I./fileselector -I./xmlrpcpp -DPKGDATADIR=\"/usr/local/share/fldigi\" -pthread -I/usr/include/alsa -D_REENTRANT -I/usr/include/libpng16 -pipe -Wall -fexceptions -O2 -O0 -fno-inline-functions -ggdb3 -Wall --param=max-vartrack-size=0 -I./xmlrpcpp --param=max-vartrack-size=0 -UNDEBUG -MT flslider2.o -MMD -MP -MF .deps/flslider2.Tpo -c -o flslider2.o flslider2.cxx
 
 progdefaults.o: progdefaults.cxx
-	g++ -DHAVE_CONFIG_H -I. -DBUILD_FLDIGI -DLOCALEDIR=\"/usr/local/share/locale\" -I./include -I./irrxml -I./libtiniconv -I./fileselector -I./xmlrpcpp -DPKGDATADIR=\"/usr/local/share/fldigi\" -pthread -I/usr/include/alsa -D_REENTRANT -I/usr/include/libpng16 -pipe -Wall -fexceptions -O2 -O0 -fno-inline-functions -ggdb3 -Wall --param=max-vartrack-size=0 -I./xmlrpcpp --param=max-vartrack-size=0 -UNDEBUG -MT flslider2.o -MMD -MP -MF .deps/flslider2.Tpo -c -o progdefaults.o progdefaults.cxx
+	g++ -DHAVE_CONFIG_H -I. -DBUILD_FLDIGI -DLOCALEDIR=\"/usr/local/share/locale\" -I./include -I./irrxml -I./libtiniconv -I./fileselector -I./xmlrpcpp -DPKGDATADIR=\"/usr/local/share/fldigi\" -pthread -I/usr/include/alsa -D_REENTRANT -I/usr/include/libpng16 -pipe -Wall -fexceptions -O2 -O0 -fno-inline-functions -ggdb3 -Wall --param=max-vartrack-size=0 -I./xmlrpcpp --param=max-vartrack-size=0 -UNDEBUG -MT flslider2.o -MMD -MP -MF .deps/progdefaults.Tpo -c -o progdefaults.o progdefaults.cxx
 
 waterfall.o: waterfall.cxx include/fl_lock.h include/stacktrace.h \
  include/debug.h include/util.h include/config.h include/pkg.h \
