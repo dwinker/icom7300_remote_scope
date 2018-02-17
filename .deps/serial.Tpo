@@ -1,0 +1,5 @@
+serial.o: serial.cxx serial.h ic7300.h
+
+serial.h:
+
+ic7300.h:

@@ -1,0 +1,14 @@
+ic7300.o: ic7300.cxx ic7300.h waterfall.h include/fldigi-config.h \
+ include/digiscope.h include/complex.h include/flslider2.h
+
+ic7300.h:
+
+waterfall.h:
+
+include/fldigi-config.h:
+
+include/digiscope.h:
+
+include/complex.h:
+
+include/flslider2.h:
