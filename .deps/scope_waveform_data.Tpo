@@ -1,17 +1,8 @@
 scope_waveform_data.o: scope_waveform_data.cxx scope_waveform_data.h \
- waterfall.h include/fldigi-config.h include/digiscope.h \
- include/complex.h include/flslider2.h ic7300.h
+ waterfall.h ic7300.h
 
 scope_waveform_data.h:
 
 waterfall.h:
-
-include/fldigi-config.h:
-
-include/digiscope.h:
-
-include/complex.h:
-
-include/flslider2.h:
 
 ic7300.h:

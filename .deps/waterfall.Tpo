@@ -1,37 +1,5 @@
-waterfall.o: waterfall.cxx include/fl_lock.h include/stacktrace.h \
- include/debug.h include/util.h include/config.h include/pkg.h \
- include/config.h waterfall.h include/fldigi-config.h include/digiscope.h \
- include/complex.h include/flslider2.h progdefaults.h ic7300.h \
- scope_waveform_data.h serial.h
-
-include/fl_lock.h:
-
-include/stacktrace.h:
-
-include/debug.h:
-
-include/util.h:
-
-include/config.h:
-
-include/pkg.h:
-
-include/config.h:
+waterfall.o: waterfall.cxx waterfall.h include/fldigi-config.h
 
 waterfall.h:
 
 include/fldigi-config.h:
-
-include/digiscope.h:
-
-include/complex.h:
-
-include/flslider2.h:
-
-progdefaults.h:
-
-ic7300.h:
-
-scope_waveform_data.h:
-
-serial.h:

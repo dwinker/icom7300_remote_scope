@@ -7,9 +7,11 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 
+#include "complex.h"    // TBD - Has to come before one of these other includes. Weird.
 #include "waterfall.h"
 #include "serial.h"
 #include "progdefaults.h"
+#include "fldigi-config.h"
 
 static void print_usage_exit(void);
 static void do_fltk(int width, int height);

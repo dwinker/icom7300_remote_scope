@@ -1,17 +1,12 @@
-remscp.o: remscp.cxx waterfall.h include/fldigi-config.h \
- include/digiscope.h include/complex.h include/flslider2.h serial.h \
- progdefaults.h
-
-waterfall.h:
-
-include/fldigi-config.h:
-
-include/digiscope.h:
+remscp.o: remscp.cxx include/complex.h waterfall.h serial.h \
+ progdefaults.h include/fldigi-config.h
 
 include/complex.h:
 
-include/flslider2.h:
+waterfall.h:
 
 serial.h:
 
 progdefaults.h:
+
+include/fldigi-config.h:
