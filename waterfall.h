@@ -73,6 +73,7 @@ private:
     WFspeed      wfspeed;
     unsigned int img_area;
     RGBI        *img;
+    unsigned int head_y;
 };
 
 class Scale : public Fl_Widget {

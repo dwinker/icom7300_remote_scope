@@ -21,8 +21,10 @@
 // ----------------------------------------------------------------------------
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>
+#include <climits>
 #include <math.h>
 #include <assert.h>
+#include <cstdio>
 #include "waterfall.h"
 #include "ic7300.h"
 #include "serial.h"
@@ -65,6 +67,9 @@ void FFTdisp::update(
     unsigned int first_x,
     unsigned int width)
 {
+    // TBD - Could keep track of which parts of img are dirty and communicate
+    // that to draw() so only part of the image would have to be updated each
+    // time.
     int disp_w;
     double sigy_norm;
     unsigned int ymax, ynext;
@@ -144,6 +149,7 @@ WFdisp::WFdisp(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0
 
     img_area = w0 * h0;
     img = new RGBI[img_area];
+    head_y = 0;
 
     Speed(NORMAL);
 }
@@ -178,38 +184,68 @@ void WFdisp::update(
     unsigned int first_x,
     unsigned int width)
 {
-   const double * __restrict__ sigy_norm;
-   RGBI         * __restrict__ rgbi;
+    // TBD - Could keep track of which parts of img are dirty and communicate
+    // that to draw() so only part of the image would have to be updated each
+    // time.
+    static unsigned int         last_first_x = UINT_MAX;
+    const double * __restrict__ sigy_norm;
+    RGBI         * __restrict__ rgbi;
 
-   sigy_norm = sigy_normalized;
-   rgbi      = &img[first_x];
+    if(first_x < last_first_x) {
+        // We are on a new row.  Do this at the beginning of this method.
+        // draw() needs to know where this method wrote to.
+        if(0 == head_y)
+            head_y = h() - 1;
+        else
+            head_y--;
+    }
+    last_first_x = first_x;
 
-   while(width--) {
-      unsigned char sig;
-      sig = static_cast<unsigned char>(round(*sigy_norm * 255.0));
-      for(int y = 0; y < h(); y++) {
-        *(rgbi + y * w()) = mag2RGBI[sig];
-      }
-      //printf("%d %d %d %d %d\n", sig, rgbi->R, rgbi->G, rgbi->B, rgbi->I);
-      sigy_norm++;
-      rgbi++;
-   }
+    // WFdisp::img is a circular buffer of line records. The lines are
+    // segmented into width wide segments. The very first call to this method
+    // fills in one line and that is drawn at the top of the image. Each
+    // subsequent call fills in one line above the previous until the top of
+    // img is reached. Then we go back to the bottom of img. The WFdisp::draw()
+    // function knows how to take apart the circular buffer and draw two
+    // seperate images to complete the fill image.
+    sigy_norm = sigy_normalized;
+    rgbi      = &img[head_y * w() + first_x];
+    while(width--) {
+        unsigned char sig;
+        sig = static_cast<unsigned char>(round(*sigy_norm * 255.0));
+        *rgbi = mag2RGBI[sig];
+        //printf("%d %d %d %d %d\n", sig, rgbi->R, rgbi->G, rgbi->B, rgbi->I);
+        sigy_norm++;
+        rgbi++;
+    }
+
     redraw();
 }
 
 void WFdisp::draw()
 {
-    setcolors();
-    int disp_w;
-    int disp_h;
+    uchar *pixmap_a, *pixmap_b;
+    unsigned int disp_x, disp_y, disp_w, disp_h;
+    unsigned int a_y, a_h, b_y, b_h;
+
+    disp_x = x();
+    disp_y = y();
     disp_w = w();
     disp_h = h();
-    uchar *pixmap = (uchar *)img;
-    //fl_color(FL_BLUE);
-    //fl_rectf(x(), y(), disp_w, disp_h);
-    fl_draw_image(
-        pixmap, x(), y(), disp_w, disp_h,
-        sizeof(RGBI), disp_w * sizeof(RGBI) );
+
+    pixmap_a = (uchar *)&img[head_y * disp_w];
+    pixmap_b = (uchar *)&img[0];
+
+    a_y = disp_y;
+    a_h = disp_h - head_y;
+
+    b_y = disp_y + disp_h - head_y;
+    b_h = head_y;
+
+    fl_draw_image(pixmap_a, disp_x, a_y, disp_w, a_h, sizeof(RGBI), disp_w * sizeof(RGBI));
+    fl_draw_image(pixmap_b, disp_x, b_y, disp_w, b_h, sizeof(RGBI), disp_w * sizeof(RGBI));
+
+    printf("%p %p %u %u %u %u %u\n", pixmap_a, pixmap_b, head_y, a_y, a_h, b_y, b_h);
 }
 
 Scale::Scale(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0, h0, lbl)
