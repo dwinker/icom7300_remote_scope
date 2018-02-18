@@ -17,7 +17,7 @@ static void print_usage_exit(void);
 static void do_fltk(int width, int height);
 
 // When true don't open the serial port and use fake data.
-static bool fakeFlag = false;
+static bool fake_flag = false;
 
 #define BORDER     10
 #define MAX_WIDTH  2048
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
               break;
             case 'f':
               puts ("option -f");
-              fakeFlag = true;
+              fake_flag = true;
               break;
             case 'g':
               printf ("option -g with value '%s'\n", optarg);
@@ -72,13 +72,13 @@ int main(int argc, char **argv)
         }
     }
 
-    if(!fakeFlag)
+    if(!fake_flag)
         (void)serial_init(devStr);
 
     init_progdefaults();
     do_fltk(width_opt, height_opt);
 
-    if(!fakeFlag) {
+    if(!fake_flag) {
         send_scope_wave_output_off();
         sleep(1);
         retval = serial_close();
@@ -102,8 +102,9 @@ static void do_fltk(int width, int height)
     Fl::visual(FL_RGB); // insure 24 bit color operation
     Fl::scheme("gtk+");
 
-    Fl_Window win(width, height); // make a window
+    Fl_Window win(width, height, "ICOM-7300 Remote Scope"); // make a window
     wf = new waterfall(BORDER, BORDER, width - 2*BORDER, height - 2*BORDER);
+    wf->FakeFlag(fake_flag); 
     wf->end();
     win.show();
 

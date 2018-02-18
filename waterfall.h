@@ -25,71 +25,93 @@
 #include <FL/Fl_Widget.H>
 #include <FL/Fl_Group.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Light_Button.H>
 
 struct RGB {
-	unsigned char R;
-	unsigned char G;
-	unsigned char B;
+    uchar R;
+    uchar G;
+    uchar B;
 };
 
 struct RGBI {
-	unsigned char R;
-	unsigned char G;
-	unsigned char B;
-	unsigned char I;
+    uchar R;
+    uchar G;
+    uchar B;
+    uchar I;
 };
 
 enum WFspeed { PAUSE = 0, FAST = 1, NORMAL = 2, SLOW = 4 };
 
 class FFTdisp : public Fl_Widget {
 public:
-	FFTdisp(int x, int y, int w, int h, char *lbl = 0);
-    void sig_data(const unsigned char *sig,
-                  unsigned int first_point_n,
-                  unsigned int length);
-	~FFTdisp();
-	void draw();
+    FFTdisp(int x, int y, int w, int h, char *lbl = 0);
+    ~FFTdisp();
+    void update(const double *sigy_normalized,
+                unsigned int first_x,
+                unsigned int width);
+    void draw();
+
+private:
+    unsigned int img_area;
+    uchar       *img;
 };
 
 class WFdisp : public Fl_Widget {
 public:
-	WFdisp(int x, int y, int w, int h, char *lbl = 0);
-	~WFdisp();
-	WFspeed Speed() { return wfspeed;}
-	void Speed(WFspeed rate) { wfspeed = rate;}
-    void sig_data(const unsigned char *sig,
-                  unsigned int first_point_n,
-                  unsigned int length);
-	void draw();
+    WFdisp(int x, int y, int w, int h, char *lbl = 0);
+    ~WFdisp();
+    void setcolors(void);
+    WFspeed Speed() { return wfspeed;}
+    void Speed(WFspeed rate) { wfspeed = rate;}
+    void update(const double *sigy_normalized,
+                unsigned int first_x,
+                unsigned int width);
+    void draw();
 private:
-    WFspeed wfspeed;
+    RGBI         mag2RGBI[256];
+    RGB          palette[9];
+    WFspeed      wfspeed;
+    unsigned int img_area;
+    RGBI        *img;
 };
 
 class Scale : public Fl_Widget {
 public:
-	Scale(int x, int y, int w, int h, char *lbl = 0);
-	~Scale();
-	void draw();
+    Scale(int x, int y, int w, int h, char *lbl = 0);
+    ~Scale();
+    void draw();
 };
 
 class waterfall: public Fl_Group {
 public:
-	waterfall(int x, int y, int w, int h, char *lbl= 0);
-	~waterfall();
+    waterfall(int x, int y, int w, int h, char *lbl= 0);
+    ~waterfall();
     static waterfall *get_waterfall(void);
 
     void sig_data(unsigned char *sig,
                   unsigned int  first_point_n,
                   unsigned int  length);
-	int Speed();
-	void Speed(int rate);
+    bool FakeFlag(void);
+    void FakeFlag(bool f);
+    int Speed(void);
+    void Speed(int rate);
+    int On(void);
+    void On(int off_on);
+
+    FFTdisp *fftdisp;
+    WFdisp  *wfdisp;
+    Scale   *scale;
 
 private:
     static waterfall *wf;
-	FFTdisp   *fftdisp;
-	WFdisp    *wfdisp;
-    Scale     *scale;
-	Fl_Button *wfrate;
+    //void xmtlock_selection_color(Fl_Color clr) {xmtlock->selection_color(clr);}
+
+    Fl_Group        *rs1;
+    Fl_Button       *wfrate_btn;
+    Fl_Light_Button *scope_on_btn;
+
+    int  off_on;
+    bool fake_flag;
 };
 
 #endif

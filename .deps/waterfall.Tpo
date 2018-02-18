@@ -1,5 +1,12 @@
-waterfall.o: waterfall.cxx waterfall.h include/fldigi-config.h
+waterfall.o: waterfall.cxx waterfall.h ic7300.h serial.h \
+ scope_waveform_data.h include/fldigi-config.h
 
 waterfall.h:
+
+ic7300.h:
+
+serial.h:
+
+scope_waveform_data.h:
 
 include/fldigi-config.h:
