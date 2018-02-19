@@ -1,15 +1,12 @@
-flslider2.o: progdefaults.cxx progdefaults.h waterfall.h \
- include/fldigi-config.h include/digiscope.h include/complex.h \
- include/flslider2.h
-
-progdefaults.h:
-
-waterfall.h:
-
-include/fldigi-config.h:
-
-include/digiscope.h:
-
-include/complex.h:
+flslider2.o: flslider2.cxx include/flslider2.h include/config.h \
+ include/pkg.h include/util.h include/config.h
 
 include/flslider2.h:
+
+include/config.h:
+
+include/pkg.h:
+
+include/util.h:
+
+include/config.h:

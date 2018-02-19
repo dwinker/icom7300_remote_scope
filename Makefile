@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-g -c -Wall -std=c++11
+CFLAGS=-g -c -Og -Wall -std=c++11
 FL_CFLAGS=$(CFLAGS) `fltk-config --cxxflags --use-images`
 LIBS=`fltk-config --ldflags` -lfltk -lfltk_images -lstdc++ -lXfixes -lXext -lpthread -ldl -lm -lX11
 
