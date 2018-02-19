@@ -19,6 +19,8 @@ a prototype for integration into flrig.
 
 ToDo:
 * Need to wait for response from radio before sending next message.
+* Turn off scope data from radio when exiting.
+* Persistence on FFT display.
 * Add scale (the green bar is place reserved for scale).
 * Add markers.
 * Tune radio from markers.
