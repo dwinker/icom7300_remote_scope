@@ -24,7 +24,7 @@
 #include <climits>
 #include <math.h>
 #include <assert.h>
-#include <cstdio>
+//#include <cstdio>
 #include "waterfall.h"
 #include "ic7300.h"
 #include "serial.h"
@@ -59,7 +59,7 @@ FFTdisp::FFTdisp(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, 
 
 FFTdisp::~FFTdisp()
 {
-    delete img;
+    //delete img;
 }
 
 void FFTdisp::update(
@@ -156,7 +156,7 @@ WFdisp::WFdisp(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0
 
 WFdisp::~WFdisp()
 {
-    delete img;
+    //delete img;
 }
 
 void WFdisp::setcolors(void)
@@ -245,7 +245,7 @@ void WFdisp::draw()
     fl_draw_image(pixmap_a, disp_x, a_y, disp_w, a_h, sizeof(RGBI), disp_w * sizeof(RGBI));
     fl_draw_image(pixmap_b, disp_x, b_y, disp_w, b_h, sizeof(RGBI), disp_w * sizeof(RGBI));
 
-    printf("%p %p %u %u %u %u %u\n", pixmap_a, pixmap_b, head_y, a_y, a_h, b_y, b_h);
+    //printf("%p %p %u %u %u %u %u\n", pixmap_a, pixmap_b, head_y, a_y, a_h, b_y, b_h);
 }
 
 Scale::Scale(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0, h0, lbl)
@@ -330,9 +330,9 @@ waterfall::waterfall(int x0, int y0, int w0, int h0, char *lbl) : Fl_Group(x0, y
 
 waterfall::~waterfall()
 {
-    delete fftdisp;
-    delete wfdisp;
-    delete scale;
+    //delete fftdisp;
+    //delete wfdisp;
+    //delete scale;
 }
 
 // This class that contains the data displayer objects manages the normalized

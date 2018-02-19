@@ -366,7 +366,7 @@ static void *serial_listen_thread_loop(void *pfd)
                         printf(" %02X", buf[n]);
                 else {
                     printf(" %02X %02X %02X %02X %02X ... %02X",
-                       buf[n], buf[n+1], buf[n+2], buf[n+3], buf[n+4], buf[nread-1]);
+                       buf[0], buf[1], buf[2], buf[3], buf[4], buf[nread-1]);
                 }
                 putchar('\n');
             }

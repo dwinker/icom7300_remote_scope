@@ -34,13 +34,13 @@ void stop_scope_waveform_thread()
 {
     puts("stop_scope_waveform_thread: stopping thread");
 
-    //scope_waveform_client->close();
-
     pthread_mutex_lock(&mutex_scope_waveform);
     run_scope_waveform_thread = false;
     pthread_mutex_unlock(&mutex_scope_waveform);
 
+    puts("Joining Scope Waveform Thread");
     pthread_join(*scope_waveform_thread, NULL);
+    puts("Joined");
 
     puts("stop_scope_waveform_thread: thread stopped");
 }
@@ -48,8 +48,9 @@ void stop_scope_waveform_thread()
 static void *scope_waveform_thread_loop(void *d)
 {
     useconds_t usec;
+    bool run = true;
 
-    while(run_scope_waveform_thread) {
+    while(run) {
         switch(waterfall::get_waterfall()->Speed()) {
             case PAUSE:
                 usec = 100000ul;
@@ -70,6 +71,10 @@ static void *scope_waveform_thread_loop(void *d)
         }
 
         usleep(usec);
+
+        pthread_mutex_lock(&mutex_scope_waveform);
+        run = run_scope_waveform_thread;
+        pthread_mutex_unlock(&mutex_scope_waveform);
     }
 
     return NULL;
