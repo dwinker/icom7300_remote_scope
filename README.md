@@ -4,6 +4,10 @@ It is functional as an Alpha demo. It does update the FFT and Waterfall
 displays on the PC or Laptop screen at the full speed of data coming from the
 radio, so it does accurately reflect the quality that can be expected.
 
+The video ICOM-7300_Remote_Scope_Video.mkv shows what can be expected for
+performance. It was recorded on a seven year old PC with slow video. A faster
+PC wouldn't have the slight flickers in the FFT display area.
+
 Took code from fldigi for a scope and can read scope data from the radio. Work
 in progress. I don't have build instructions, but if you get fldigi/flrig to
 compile I'm pretty sure this will too.
