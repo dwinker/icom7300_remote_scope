@@ -43,7 +43,7 @@ void init_progdefaults(void)
     progdefaults.UseWideCursor        = false;
     progdefaults.UseWideTracks        = false;
     progdefaults.WaterfallClickInsert = false;
-    progdefaults.WaterfallClickText   = "\n<FREQ>\n";
+//DW     progdefaults.WaterfallClickText   = "\n<FREQ>\n";
     progdefaults.WaterfallFontnbr     = FL_HELVETICA;
     progdefaults.WaterfallFontsize    = 12;
     progdefaults.wfAmpSpan            = 60.0;

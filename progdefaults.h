@@ -44,7 +44,7 @@ struct progdefaults_tag {
     bool        UseWideCursor;
     bool        UseWideTracks;
     bool        WaterfallClickInsert;
-    std::string WaterfallClickText;
+//DW     std::string WaterfallClickText;
     Fl_Font     WaterfallFontnbr;
     int         WaterfallFontsize;
     double      wfAmpSpan;
