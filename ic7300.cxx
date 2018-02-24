@@ -192,6 +192,10 @@ static void process_scope_data_subcmd_from_radio(const unsigned char *buf, int l
                 higher_edge,
                 swd->extended_info_or_data.extended_info.out_of_range);
 
+            waterfall::get_waterfall()->scale->makeScale(
+                    static_cast<double>(lower_edge)  / 1000000.0,
+                    static_cast<double>(higher_edge) / 1000000.0);
+
             lower_edge_last      = lower_edge;
             higher_edge_last     = higher_edge;
             center_or_fixed_last = swd->extended_info_or_data.extended_info.center_or_fixed;

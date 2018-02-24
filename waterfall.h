@@ -45,11 +45,11 @@ enum WFspeed { PAUSE = 0, FAST = 1, NORMAL = 2, SLOW = 4 };
 class FFTdisp : public Fl_Widget {
 public:
     FFTdisp(int x, int y, int w, int h, char *lbl = 0);
-    ~FFTdisp();
+    ~FFTdisp(void);
     void update(const double *sigy_normalized,
                 unsigned int first_x,
                 unsigned int width);
-    void draw();
+    void draw(void);
 
 private:
     unsigned int img_area;
@@ -59,14 +59,14 @@ private:
 class WFdisp : public Fl_Widget {
 public:
     WFdisp(int x, int y, int w, int h, char *lbl = 0);
-    ~WFdisp();
+    ~WFdisp(void);
     void setcolors(void);
-    WFspeed Speed() { return wfspeed;}
+    WFspeed Speed(void) { return wfspeed;}
     void Speed(WFspeed rate) { wfspeed = rate;}
     void update(const double *sigy_normalized,
                 unsigned int first_x,
                 unsigned int width);
-    void draw();
+    void draw(void);
 private:
     RGBI         mag2RGBI[256];
     RGB          palette[9];
@@ -79,16 +79,25 @@ private:
 class Scale : public Fl_Widget {
 public:
     Scale(int x, int y, int w, int h, char *lbl = 0);
-    ~Scale();
-    void draw();
+    ~Scale(void);
+    void makeScale(double f_low, double f_high);
+    void draw(void);
+
+private:
+    double       freq_range;      // f_high - f_low in MHz.
+    int          m_width;
+    unsigned int max_nticks;      // TBD - if this moves to makeScale() it won't need to be a class variable.
+    int          text_height;
+    double       freq_low, freq_high;
+    double       tick_delta_freq; // Distance between ticks in MHz.
+    const char  *format_string;
 };
 
 class waterfall: public Fl_Group {
 public:
     waterfall(int x, int y, int w, int h, char *lbl= 0);
-    ~waterfall();
+    ~waterfall(void);
     static waterfall *get_waterfall(void);
-
     void sig_data(unsigned char *sig,
                   unsigned int  first_point_n,
                   unsigned int  length);
@@ -105,12 +114,9 @@ public:
 
 private:
     static waterfall *wf;
-    //void xmtlock_selection_color(Fl_Color clr) {xmtlock->selection_color(clr);}
-
     Fl_Group        *rs1;
     Fl_Button       *wfrate_btn;
     Fl_Light_Button *scope_on_btn;
-
     int  off_on;
     bool fake_flag;
 };
