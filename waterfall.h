@@ -90,6 +90,8 @@ private:
     int          text_height;
     double       freq_low, freq_high;
     double       tick_delta_freq; // Distance between ticks in MHz.
+    double       sub_tick_delta_freq;
+    int          n_sub_ticks;
     const char  *format_string;
 };
 

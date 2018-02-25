@@ -22,6 +22,7 @@
 #include <FL/Fl.H>
 #include <FL/fl_draw.H>
 #include <climits>
+#include <float.h>
 #include <math.h>
 #include <assert.h>
 //#include <cstdio>
@@ -31,6 +32,13 @@
 #include "scope_waveform_data.h"
 #include "fldigi-config.h"
 #include "progdefaults.h"
+
+// For use with providing the necessary slop in floating point compares and
+// calculations.  Because floats and doubles are actually stored as a base 2
+// mantissa and exponent, often times a calculation that should end up being
+// 0.10000000 ends up being something like 0.09999948 instead.
+// Experimentation says '* 1000.0' is about right.
+const double EPSILON = DBL_EPSILON * 1000.0;
 
 // Height in pixels of the frequency scale at the bottom of the waterfall display.
 const int SCALE_H = 26;
@@ -42,6 +50,8 @@ const double RATIO = 0.2;
 // Number of pixels between Scale tick and edge of Scale area, Scale tick and
 // Scale tick label, or Scale tick label and edge of Scale area.
 const int SCALE_MARGIN = 2;
+// Sub tick is 1/3 the height of a regular tick.
+const int SUB_TICK_HEIGH_DIVISOR = 3;
 
 const size_t MAX_CHUNK_WIDTH = 256;
 
@@ -276,7 +286,7 @@ Scale::Scale(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0, 
     printf("Scale::Scale: m_width=%d, label_width=%d, text_height=%d max_nticks=%u\n",
             m_width, label_width, text_height, max_nticks);
 
-    makeScale(2.0, 4.0);
+    makeScale(10.1, 10.13);
 }
 
 // Scale ticks are an aggravating thing to try to figure out. I got some inspiration from these:
@@ -287,8 +297,8 @@ void Scale::makeScale(double f_low, double f_high)
 {
     // f_low and f_high are in MHz. The calculations here are split apart into
     // many local variables because they're hard to follow and the scale
-    // doesn't change that often, so we can afford to take a little more time
-    // for clarity in the code.
+    // doesn't change that often, so we can afford to take a little more CPU
+    // time for clarity in the code.
     double df_approx;     // Approximate delta frequency between ticks.
     double log_dfa;       // Logarithm base 10 of df_approx.
     double f_ldfa;        // Fractional part of log_dfa.
@@ -320,32 +330,38 @@ void Scale::makeScale(double f_low, double f_high)
     assert(0.1 <= td_rel_approx && td_rel_approx <= 1.0);
 
     // Here's where we make the tick distance nice numbers. I think 1, 2, 5,
-    // 10, etc. is a nice pattern.  Allow a little "slop" in floating point
-    // calculations. Because floats and doubles are actually stored as a base 2
-    // mantissa and exponent, often times a calculation that should end up
-    // being 0.10000000 ends up being something like 0.09999948 instead.
-    if(td_rel_approx < 0.101)
-        td_rel = 0.1;
-    else if(td_rel_approx < 0.201)
-        td_rel = 0.20;
-    else if(td_rel_approx < 0.501)
-        td_rel = 0.5;
-    else
-        td_rel = 1.0;
+    // 10, etc. is a nice pattern.
+    if(td_rel_approx < (0.1 + EPSILON)) {
+        td_rel      = 0.1;
+        n_sub_ticks = 5;
+    }
+    else if(td_rel_approx < (0.2 + EPSILON)) {
+        td_rel      = 0.20;
+        n_sub_ticks = 4;
+    }
+    else if(td_rel_approx < (0.5 + EPSILON)) {
+        td_rel      = 0.5;
+        n_sub_ticks = 5;
+    }
+    else {
+        td_rel      = 1.0;
+        n_sub_ticks = 5;
+    }
 
     // Here's where we use that exponent to bring the result back to MHz.
     tick_delta_freq = td_rel * pow(10, (e_ldfa + 1.0));
+    sub_tick_delta_freq = tick_delta_freq / n_sub_ticks;
 
     printf("Scale::makeScale: freq_range=%f, df_approx=%f, log_dfa=%f, f_ldfa=%f, e_ldfa=%f, td_rel_approx=%f, td_rel=%f, tick_delta_freq=%f\n",
             freq_range, df_approx, log_dfa, f_ldfa, e_ldfa, td_rel_approx, td_rel, tick_delta_freq);
 
-    if((0.01 * 0.999) > tick_delta_freq)
+    if((0.01 - EPSILON) > tick_delta_freq)
         format_string = "%.3f";
-    else if((0.1 * 0.999) > tick_delta_freq)
+    else if((0.1 - EPSILON) > tick_delta_freq)
         format_string = "%.2f";
-    else if((1.0 * 0.999) > tick_delta_freq)
+    else if((1.0 - EPSILON) > tick_delta_freq)
         format_string = "%.1f";
-    else if((10.0 * 0.999) > tick_delta_freq)
+    else if((10.0 - EPSILON) > tick_delta_freq)
         format_string = "%.0f";
     else
         format_string = "%f";
@@ -361,11 +377,12 @@ void Scale::draw()
 {
     static char szFreq[20];
     int tx, ty, tw, th;
-    int tick_x, text_x, text_x_drawn;
+    int tick_x, text_x, text_x_drawn, sub_tick_x;
     double f, f_middle, f_done;
+    int n;
     int nticks = 0;       // Count of ticks we have made.
 
-    fl_color(FL_DARK_GREEN);
+    fl_color(65);
     fl_rectf(x(), y(), w(), h());
     fl_color(fl_rgb_color(228));
 
@@ -384,10 +401,12 @@ void Scale::draw()
     fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
     fl_line(tick_x, y(), tick_x, y() + h() - text_height - 2 * SCALE_MARGIN - 1);
 
-    // The '* 0.999' is to compensate for floating point imprecision.
-    //while(f <= (freq_high - tick_delta_freq * 0.999)) {
+    for(n = 1; n < n_sub_ticks; n++) {
+        sub_tick_x = tick_x + n * sub_tick_delta_freq * (w() - 1) / freq_range;
+        fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
+    }
 
-    f = tick_delta_freq + tick_delta_freq * ceil(freq_low / tick_delta_freq);
+    f = tick_delta_freq * ceil(freq_low / tick_delta_freq - EPSILON) + tick_delta_freq;
     while(f <= f_middle) {
         snprintf(szFreq, sizeof(szFreq), format_string, f);
         fl_text_extents(szFreq, tx, ty, tw, th);
@@ -398,6 +417,11 @@ void Scale::draw()
         text_x_drawn = text_x + tw;
         fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
         fl_line(tick_x, y(), tick_x, y() + h() - text_height - 2 * SCALE_MARGIN - 1);
+
+        for(n = 1; n < n_sub_ticks; n++) {
+            sub_tick_x = tick_x + n * sub_tick_delta_freq * (w() - 1) / freq_range;
+            fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
+        }
 
         printf("|%f| %d\n", f, ++nticks);
 
@@ -415,7 +439,10 @@ void Scale::draw()
 
     printf(">%f> (%f) %d\n", freq_high, f, ++nticks);
 
-    f = tick_delta_freq * ceil(freq_high / tick_delta_freq) - tick_delta_freq;
+    f = freq_high / tick_delta_freq - EPSILON;
+    f = ceil(f);
+    f *= tick_delta_freq;
+    f -= tick_delta_freq;
     while(f > f_done) {
         snprintf(szFreq, sizeof(szFreq), format_string, f);
         fl_text_extents(szFreq, tx, ty, tw, th);
@@ -427,11 +454,15 @@ void Scale::draw()
         fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
         fl_line(tick_x, y(), tick_x, y() + h() - text_height - 2 * SCALE_MARGIN - 1);
 
+        for(n = 1; n < n_sub_ticks; n++) {
+            sub_tick_x = tick_x + n * sub_tick_delta_freq * (w() - 1) / freq_range;
+            fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
+        }
+
         printf("|%f| %d\n", f, ++nticks);
 
         f -= tick_delta_freq;
     }
-
 }
 
 // waterfall is an Fl_Group that holds the two signal displays and some
