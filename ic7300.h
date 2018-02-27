@@ -28,7 +28,6 @@ const int SCOPE_DATA_ARRAY_SIZE      = 50;
 const int SCOPE_DATA_ARRAY_SIZE_LAST = 25;
 const int SCOPE_DATA_SPAN_SIZE       = 475;
 const int SCOPE_DATA_MAX_VALUE       = 160;  // Per IC-7300_ENG_CD_0.pdf.
-const int FAKE_SCOPE_DATA_ARRAY_SIZE = 792;
 const int LAST_DIVISION_NUMBER       = 0x11;
 
 #pragma pack(push, 1)

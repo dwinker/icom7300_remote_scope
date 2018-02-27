@@ -17,7 +17,7 @@ Apparently with Linux it is not possible to open a serial port without
 momentarily activating DTR and RTS.
 https://stackoverflow.com/questions/5090451/how-to-open-serial-port-in-linux-without-changing-any-pin/21753723
 If "USB SEND" is anything other than off a short transmit control will be sent
-from the PC anytime this little program is used.
+from the PC anytime this program is used.
 
 You need to set the USB/Serial port to 115200 baud for remote scope commands to
 work. To do that you have to use the radio menus to disconnect USB CI-V from
@@ -26,21 +26,16 @@ Remote CI-V.
 This program doesn't turn on the scope or change any settings on the radio
 (other than to tell the radio to start or stop sending scope data to the PC).
 Set up the scope from the radio menu, then start this program and click Off/On.
+You can change bands or edge frequencies while this program and the scope are
+running.
 
 Right now I intend to implement the '27 xx xx' CIV commands here, and not much
-else.  I am not taking the command code from flrig because it's big and if I'm
-going to make this work as a client to flrig somehow it would be a waste of
-time to have ported all that code to here - and flrig doesn't seem to have any
-of the '27 xx xx' commands anyhow. I could try to follow flrig's pattern for
-implementing CIV commands, but the fastest way for me to get "proof-on-concept"
-is to implement commands the way that is easiest for me. Eventually that may be
-a prototype for integration into flrig.
+else.  This is kind of the test rig for the scope. I want to incorporate this
+remote scope into flrig
 
 ToDo:
-* Need to wait for response from radio before sending next message.
-* Turn off scope data from radio when exiting.
+* Need to wait for response from radio before sending next message (when incorporated into flrig).
 * Persistence on FFT display.
-* Add scale (the green bar is place reserved for scale).
 * Add markers.
 * Tune radio from markers.
 * Add gain and offset option.

@@ -52,6 +52,8 @@ const double RATIO = 0.2;
 const int SCALE_MARGIN = 2;
 // Sub tick is 1/3 the height of a regular tick.
 const int SUB_TICK_HEIGH_DIVISOR = 3;
+// 65 is dark brown.
+const int SCALE_BG_COLOR = 65;
 
 const size_t MAX_CHUNK_WIDTH = 256;
 
@@ -286,7 +288,9 @@ Scale::Scale(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0, 
     printf("Scale::Scale: m_width=%d, label_width=%d, text_height=%d max_nticks=%u\n",
             m_width, label_width, text_height, max_nticks);
 
-    makeScale(10.1, 10.13);
+    // Buggy scales.
+    //makeScale(10.1, 10.13);   // Fixed
+    makeScale(1.795100, 2.005);  // Will result in "%.2f" format. Fixed.
 }
 
 // Scale ticks are an aggravating thing to try to figure out. I got some inspiration from these:
@@ -309,10 +313,16 @@ void Scale::makeScale(double f_low, double f_high)
     freq_low  = f_low;
     freq_high = f_high;
 
+    if(f_high <= (f_low + EPSILON)) {
+        printf("Scale::makeScale: (f_high=%f) <= (f_low=%f)\n", f_high, f_low);
+        return;
+    }
+
     if(1 == max_nticks) {
-        puts("No point in max_nticks = 1.");
+        puts("Scale::makeScale: No point in max_nticks = 1.");
+        return;
     } else if(2 == max_nticks) {
-        puts("f_low and f_high are the two ticks.");
+        puts("Scale::makeScale: f_low and f_high are the two ticks.");
     }
 
     // Use logarithms to bring our frequency range to a number between 0.1 and
@@ -375,38 +385,62 @@ Scale::~Scale()
 
 void Scale::draw()
 {
-    static char szFreq[20];
+    static char szFreq[10];
+    static char szFreqTest[10];
     int tx, ty, tw, th;
     int tick_x, text_x, text_x_drawn, sub_tick_x;
     double f, f_middle, f_done;
     int n;
-    int nticks = 0;       // Count of ticks we have made.
+    //int nticks = 0;       // Count of ticks we have made.
 
-    fl_color(65);
+    fl_font(progdefaults.WaterfallFontnbr, progdefaults.WaterfallFontsize);
+
+    fl_color(SCALE_BG_COLOR);
     fl_rectf(x(), y(), w(), h());
     fl_color(fl_rgb_color(228));
 
-    printf("<%f< %d\n", freq_low, ++nticks);
+    //printf("<%f< %d\n", freq_low, ++nticks);
 
     // Start from the left and go halfway. Then start from the right and go
     // back halfway. That way the edge labels can crowd the labels closer to
     // the middle and make room for more labels.
     f_middle = (freq_low + freq_high) / 2.0;
 
-    snprintf(szFreq, sizeof(szFreq), format_string, freq_low);
-    fl_text_extents(szFreq, tx, ty, tw, th);
+    // This is the leftmost tick and label.
     tick_x = x();
-    text_x = tick_x + SCALE_MARGIN; // Left justified.
-    text_x_drawn = text_x + tw;
-    fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
     fl_line(tick_x, y(), tick_x, y() + h() - text_height - 2 * SCALE_MARGIN - 1);
 
-    for(n = 1; n < n_sub_ticks; n++) {
-        sub_tick_x = tick_x + n * sub_tick_delta_freq * (w() - 1) / freq_range;
-        fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
+    // Don't draw the label if it would be the same text as the next higher label.
+    // f is the next higher label frequency.
+    f = tick_delta_freq * floor(freq_low / tick_delta_freq + EPSILON) + tick_delta_freq;
+    snprintf(szFreq,     sizeof(szFreq),     format_string, freq_low);
+    snprintf(szFreqTest, sizeof(szFreqTest), format_string, f);
+    if(0 == strcmp(szFreq, szFreqTest)) {
+        text_x_drawn = tick_x + SCALE_MARGIN;
+    } else {
+        fl_text_extents(szFreq, tx, ty, tw, th);
+        text_x = tick_x + SCALE_MARGIN; // Left justified.
+        text_x_drawn = text_x + tw;
+        fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
     }
 
-    f = tick_delta_freq * ceil(freq_low / tick_delta_freq - EPSILON) + tick_delta_freq;
+    // Subticks going right from the tick position that would be left of the
+    // first tick corresponding to a "round" frequency value.
+    tick_x = x() + (f - freq_low - tick_delta_freq) * (w() - 1) / freq_range;
+    for(n = 1; n < n_sub_ticks; n++) {
+        sub_tick_x = tick_x + n * sub_tick_delta_freq * (w() - 1) / freq_range;
+        if(0 < sub_tick_x)
+            fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
+    }
+
+    // Label the units (MHz). Leave a little bit of the sub tick(s) above the units label.
+    fl_color(SCALE_BG_COLOR);
+    fl_text_extents("MHz", tx, ty, tw, th);
+    fl_rectf(text_x, y() + SCALE_MARGIN, tw + 2 * SCALE_MARGIN, th + SCALE_MARGIN);
+    fl_color(fl_rgb_color(228));
+    fl_draw("MHz", text_x, y() + 2 * SCALE_MARGIN + th);
+
+    // Ticks and subticks going right to about halfway.
     while(f <= f_middle) {
         snprintf(szFreq, sizeof(szFreq), format_string, f);
         fl_text_extents(szFreq, tx, ty, tw, th);
@@ -423,26 +457,34 @@ void Scale::draw()
             fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
         }
 
-        printf("|%f| %d\n", f, ++nticks);
+        //printf("|%f| %d\n", f, ++nticks);
 
         f_done = f; // Next loop we'll know exactly which tick we finished here.
         f += tick_delta_freq;
     }
 
-    snprintf(szFreq, sizeof(szFreq), format_string, freq_high);
-    fl_text_extents(szFreq, tx, ty, tw, th);
+    // This is the rightmost tick and label.
     tick_x = x() + w() - 1;
-    text_x = tick_x - tw - SCALE_MARGIN; // Right justified.
-    text_x_drawn = text_x - 1;
-    fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
     fl_line(tick_x, y(), tick_x, y() + h() - text_height - 2 * SCALE_MARGIN - 1);
 
-    printf(">%f> (%f) %d\n", freq_high, f, ++nticks);
+    // Don't draw the label if it would be the same text as the next lower label.
+    // f is the next lower label frequency.
+    f = tick_delta_freq * ceil(freq_high / tick_delta_freq - EPSILON) - tick_delta_freq;
+    snprintf(szFreq,     sizeof(szFreq),     format_string, freq_high);
+    snprintf(szFreqTest, sizeof(szFreqTest), format_string, f);
+    if(0 == strcmp(szFreq, szFreqTest)) {
+        text_x_drawn = tick_x;
+    } else {
+        fl_text_extents(szFreq, tx, ty, tw, th);
+        text_x = tick_x - tw - SCALE_MARGIN; // Right justified.
+        text_x_drawn = text_x - 1;
+        fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
+    }
 
-    f = freq_high / tick_delta_freq - EPSILON;
-    f = ceil(f);
-    f *= tick_delta_freq;
-    f -= tick_delta_freq;
+    //printf(">%f> (%f) %d\n", freq_high, f, ++nticks);
+
+    // Ticks and subticks going left up to, but not including the exact tick we
+    // finished with on the previous loop.
     while(f > f_done) {
         snprintf(szFreq, sizeof(szFreq), format_string, f);
         fl_text_extents(szFreq, tx, ty, tw, th);
@@ -459,7 +501,7 @@ void Scale::draw()
             fl_line(sub_tick_x, y(), sub_tick_x, y() + (h() - text_height) / SUB_TICK_HEIGH_DIVISOR);
         }
 
-        printf("|%f| %d\n", f, ++nticks);
+        //printf("|%f| %d\n", f, ++nticks);
 
         f -= tick_delta_freq;
     }
