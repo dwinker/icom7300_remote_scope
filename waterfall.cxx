@@ -289,8 +289,10 @@ Scale::Scale(int x0, int y0, int w0, int h0, char *lbl) : Fl_Widget(x0, y0, w0, 
             m_width, label_width, text_height, max_nticks);
 
     // Buggy scales.
-    //makeScale(10.1, 10.13);   // Fixed
-    makeScale(1.795100, 2.005);  // Will result in "%.2f" format. Fixed.
+    //makeScale(10.1, 10.13);     // Fixed
+    //makeScale(1.795100, 2.005); // Will result in "%.2f" format. Fixed.
+    //makeScale(24.89, 24.93);    // Double label at 24.910. Fixed.
+    makeScale(50.1, 50.3);        // MHz label missing. 50.10 shifted right. Mostly Fixed. Good enough.
 }
 
 // Scale ticks are an aggravating thing to try to figure out. I got some inspiration from these:
@@ -415,11 +417,11 @@ void Scale::draw()
     f = tick_delta_freq * floor(freq_low / tick_delta_freq + EPSILON) + tick_delta_freq;
     snprintf(szFreq,     sizeof(szFreq),     format_string, freq_low);
     snprintf(szFreqTest, sizeof(szFreqTest), format_string, f);
+    text_x = tick_x + SCALE_MARGIN; // Left justified.
     if(0 == strcmp(szFreq, szFreqTest)) {
-        text_x_drawn = tick_x + SCALE_MARGIN;
+        text_x_drawn = tick_x;
     } else {
         fl_text_extents(szFreq, tx, ty, tw, th);
-        text_x = tick_x + SCALE_MARGIN; // Left justified.
         text_x_drawn = text_x + tw;
         fl_draw(szFreq, text_x, y() + h() - SCALE_MARGIN);
     }
@@ -485,7 +487,7 @@ void Scale::draw()
 
     // Ticks and subticks going left up to, but not including the exact tick we
     // finished with on the previous loop.
-    while(f > f_done) {
+    while(f > (f_done + EPSILON)) {
         snprintf(szFreq, sizeof(szFreq), format_string, f);
         fl_text_extents(szFreq, tx, ty, tw, th);
         tick_x = x() + (f - freq_low) * (w() - 1) / freq_range;
