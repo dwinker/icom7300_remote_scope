@@ -103,8 +103,6 @@ public:
     void sig_data(unsigned char *sig,
                   unsigned int  first_point_n,
                   unsigned int  length);
-    bool FakeFlag(void);
-    void FakeFlag(bool f);
     int Speed(void);
     void Speed(int rate);
     int On(void);
@@ -120,7 +118,6 @@ private:
     Fl_Button       *wfrate_btn;
     Fl_Light_Button *scope_on_btn;
     int  off_on;
-    bool fake_flag;
 };
 
 #endif

@@ -16,9 +16,6 @@
 static void print_usage_exit(void);
 static void do_fltk(int width, int height);
 
-// When true don't open the serial port and use fake data.
-static bool fake_flag = false;
-
 #define BORDER     10
 #define MAX_WIDTH  2048
 #define MAX_HEIGHT 2048
@@ -31,7 +28,6 @@ int main(int argc, char **argv)
     static const struct option long_options[] =
     {
         {"device",   required_argument, 0, 'd'},
-        {"fake",     no_argument,       0, 'f'},
         {"geometry", optional_argument, 0, 'g'},
         {0, 0, 0, 0}
     };
@@ -53,10 +49,6 @@ int main(int argc, char **argv)
               printf ("option -d with value '%s'\n", optarg);
               devStr = optarg;
               break;
-            case 'f':
-              puts ("option -f");
-              fake_flag = true;
-              break;
             case 'g':
               printf ("option -g with value '%s'\n", optarg);
               XParseGeometry(optarg, &x_opt, &y_opt, &width_opt, &height_opt);
@@ -72,17 +64,14 @@ int main(int argc, char **argv)
         }
     }
 
-    if(!fake_flag)
-        (void)serial_init(devStr);
+    (void)serial_init(devStr);
 
     init_progdefaults();
     do_fltk(width_opt, height_opt);
 
-    if(!fake_flag) {
-        send_scope_wave_output_off();
-        sleep(1);
-        retval = serial_close();
-    }
+    send_scope_wave_output_off();
+    sleep(1);
+    retval = serial_close();
 
     return retval;
 }
@@ -104,7 +93,6 @@ static void do_fltk(int width, int height)
 
     Fl_Window win(width, height, "ICOM-7300 Remote Scope"); // make a window
     wf = new waterfall(BORDER, BORDER, width - 2*BORDER, height - 2*BORDER);
-    wf->FakeFlag(fake_flag); 
     wf->end();
     win.show();
 

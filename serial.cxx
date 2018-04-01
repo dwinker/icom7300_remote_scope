@@ -227,32 +227,6 @@ void send_scope_wave_output_off(void)
            //END_MESSAGE == buf[nsent - 1]) ? "OK" : "No Good");
 }
 
-
-//void get_scope_waveform_data(void)
-//{
-//    unsigned char buf[200];
-//    int nsent;
-//    int n;
-//    int i;
-//
-//    assert(f_fd);
-//
-//    for(i = 0; i < 10; i++) {
-//        nsent = read(f_fd, buf, sizeof(buf));
-//        printf("get_scope_waveform_data: try %d read %d bytes:", i, nsent);
-//        for(n = 0; n < nsent; n++) {
-//            printf(" %02X", buf[n]);
-//        }
-//        putchar('\n');
-//    }
-//
-//    // Check for correct response.
-//    puts( (CONT_ADDR   == buf[nsent - 4] &&
-//           XCVR_ADDR   == buf[nsent - 3] &&
-//           OK_CODE     == buf[nsent - 2] &&
-//           END_MESSAGE == buf[nsent - 1]) ? "OK" : "No Good");
-//}
-
 // Mostly sets the serial port to raw. 
 static void serial_port_init(struct termios *ptio)
 {

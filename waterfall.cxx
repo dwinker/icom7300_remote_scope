@@ -29,7 +29,6 @@
 #include "waterfall.h"
 #include "ic7300.h"
 #include "serial.h"
-#include "scope_waveform_data.h"
 #include "fldigi-config.h"
 #include "progdefaults.h"
 
@@ -662,16 +661,6 @@ void waterfall::sig_data(
     Fl::awake();
 }
 
-bool waterfall::FakeFlag(void)
-{
-    return fake_flag;
-}
-
-void waterfall::FakeFlag(bool f)
-{
-    fake_flag = f;
-}
-
 int waterfall::Speed(void)
 {
     return (int)wfdisp->Speed();
@@ -733,18 +722,10 @@ int waterfall::On(void)
 void waterfall::On(int off_on)
 {
     if(off_on) {
-        if(fake_flag) {
-            start_scope_waveform_thread();
-        } else {
-            send_scope_wave_output_on();
-        }
+        send_scope_wave_output_on();
         scope_on_btn->label("On");
     } else {
-        if(fake_flag) {
-            stop_scope_waveform_thread();
-        } else {
-            send_scope_wave_output_off();
-        }
+        send_scope_wave_output_off();
         scope_on_btn->label("Off");
     }
     scope_on_btn->redraw_label();

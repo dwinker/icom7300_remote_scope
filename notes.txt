@@ -1,0 +1,6 @@
+https://stackoverflow.com/questions/326679/choosing-an-attractive-linear-scale-for-a-graphs-y-axis
+https://stackoverflow.com/questions/8506881/nice-label-algorithm-for-charts-with-minimum-ticks/16363437#16363437
+http://austinclemens.com/blog/2016/01/09/an-algorithm-for-creating-a-graphs-axes/
+http://vis.stanford.edu/files/2010-TickLabels-InfoVis.pdf
+
+Try Sweep Speed (p. 5-5) to see if it changes the remote FFT update speed.
