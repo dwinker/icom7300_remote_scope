@@ -1,0 +1,12 @@
+IC7300_waterfall.o: IC7300_waterfall.cxx IC7300_waterfall.h ic7300.h \
+ serial.h include/fldigi-config.h progdefaults.h
+
+IC7300_waterfall.h:
+
+ic7300.h:
+
+serial.h:
+
+include/fldigi-config.h:
+
+progdefaults.h:

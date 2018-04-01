@@ -3,7 +3,7 @@
 #include <stdlib.h> // For exit();
 #include <assert.h>
 #include "ic7300.h"
-#include "waterfall.h"
+#include "IC7300_waterfall.h"
 
 //struct scope_waveform_data_tag x;
 
@@ -25,8 +25,8 @@ const unsigned char SCOPE_CENTER_MODE_SUBCMD          = 0x1C;
 const unsigned char SCOPE_VBW_SUBCMD                  = 0x1D;
 const unsigned char SCOPE_FIXED_EDGE_FREQS_SUBCMD     = 0x1E;
 
-static void process_scope_cmd_from_radio(const unsigned char *buf, int length);
-static void process_scope_data_subcmd_from_radio(const unsigned char *buf, int length);
+static void ProcessScopeCommand(const unsigned char *buf, int length);
+static void ProcessScopeDataSubcmd(const unsigned char *buf, int length);
 
 int process_cmd_from_radio(const unsigned char *buf, int nread)
 {
@@ -61,7 +61,7 @@ int process_cmd_from_radio(const unsigned char *buf, int nread)
         --nread;
         switch(*buf++) {
             case SCOPE_CMD:
-                process_scope_cmd_from_radio(buf, nread);
+                ProcessScopeCommand(buf, nread);
                 break;
             default:
                 break;
@@ -71,7 +71,7 @@ int process_cmd_from_radio(const unsigned char *buf, int nread)
     return 0;
 }
 
-static void process_scope_cmd_from_radio(const unsigned char *buf, int length)
+static void ProcessScopeCommand(const unsigned char *buf, int length)
 {
     // Nothing to do if no sub command.
     if(0 == length)
@@ -80,7 +80,7 @@ static void process_scope_cmd_from_radio(const unsigned char *buf, int length)
     --length;
     switch(*buf++) {
         case SCOPE_WAVEFORM_DATA_SUBCMD:
-            process_scope_data_subcmd_from_radio(buf, length);
+            ProcessScopeDataSubcmd(buf, length);
             break;
         case SCOPE_OFF_ON_SUBCMD:
             puts("SCOPE_OFF_ON_SUBCMD unhandled");
@@ -130,7 +130,7 @@ static void process_scope_cmd_from_radio(const unsigned char *buf, int length)
     }
 }
 
-static void process_scope_data_subcmd_from_radio(const unsigned char *buf, int length)
+static void ProcessScopeDataSubcmd(const unsigned char *buf, int length)
 {
     const struct  scope_waveform_data_tag *swd;
     unsigned char division_number;

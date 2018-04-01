@@ -2,7 +2,7 @@
 #define _PROGDEFAULTS_H
 
 #include <FL/Enumerations.H>
-#include "waterfall.h"
+#include "IC7300_waterfall.h"
 
 struct progdefaults_tag {
     RGBI        bwTrackRGBI;

@@ -1,5 +1,5 @@
-flslider2.o: progdefaults.cxx progdefaults.h waterfall.h
+flslider2.o: progdefaults.cxx progdefaults.h IC7300_waterfall.h
 
 progdefaults.h:
 
-waterfall.h:
+IC7300_waterfall.h:

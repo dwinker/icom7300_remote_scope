@@ -8,7 +8,7 @@
 #include <FL/Fl_Window.H>
 
 #include "complex.h"    // TBD - Has to come before one of these other includes. Weird.
-#include "waterfall.h"
+#include "IC7300_waterfall.h"
 #include "serial.h"
 #include "progdefaults.h"
 #include "fldigi-config.h"

@@ -1,5 +1,5 @@
-ic7300.o: ic7300.cxx ic7300.h waterfall.h
+ic7300.o: ic7300.cxx ic7300.h IC7300_waterfall.h
 
 ic7300.h:
 
-waterfall.h:
+IC7300_waterfall.h:

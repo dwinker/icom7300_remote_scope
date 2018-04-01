@@ -26,7 +26,7 @@
 #include <math.h>
 #include <assert.h>
 //#include <cstdio>
-#include "waterfall.h"
+#include "IC7300_waterfall.h"
 #include "ic7300.h"
 #include "serial.h"
 #include "fldigi-config.h"

@@ -1,9 +1,9 @@
-remscp.o: remscp.cxx include/complex.h waterfall.h serial.h \
+remscp.o: remscp.cxx include/complex.h IC7300_waterfall.h serial.h \
  progdefaults.h include/fldigi-config.h
 
 include/complex.h:
 
-waterfall.h:
+IC7300_waterfall.h:
 
 serial.h:
 

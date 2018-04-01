@@ -1,8 +1,0 @@
-scope_waveform_data.o: scope_waveform_data.cxx scope_waveform_data.h \
- waterfall.h ic7300.h
-
-scope_waveform_data.h:
-
-waterfall.h:
-
-ic7300.h:

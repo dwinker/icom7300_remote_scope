@@ -13,12 +13,12 @@
 
 static void serial_port_init(struct termios *ptio);
 static int  serial_send(const unsigned char *buf, int n);
-static void *serial_listen_thread_loop(void *pfd);
+static void *serialListenThreadLoop(void *pfd);
 
 static int            f_fd = 0;
 static struct termios f_tio_orig;
 
-static pthread_t listen_thread;
+static pthread_t listenThread;
 
 // Getting this working with CANON mode. Maybe switch to timed reads later if
 // there are problems with CANON mode.
@@ -66,7 +66,7 @@ int serial_init(const char *devStr)
     serial_port_init(&tio);
 
     // Start the listen thread.
-    pthread_create(&listen_thread, NULL, serial_listen_thread_loop, static_cast<void *>(&f_fd));
+    pthread_create(&listenThread, NULL, serialListenThreadLoop, static_cast<void *>(&f_fd));
 
     return 0;
 }
@@ -76,13 +76,13 @@ int serial_close(void)
     int rc;
 
 #ifdef CANON
-    pthread_cancel(listen_thread);
+    pthread_cancel(listenThread);
 #else
     f_done = true;
 #endif
 
     puts("Joining Listen Thread");
-    pthread_join(listen_thread, NULL);
+    pthread_join(listenThread, NULL);
     puts("Joined");
 
     rc = tcsetattr(f_fd, TCSADRAIN, &f_tio_orig);
@@ -316,7 +316,7 @@ static int serial_send(const unsigned char *buf, int n)
     return nsent;
 }
 
-static void *serial_listen_thread_loop(void *pfd)
+static void *serialListenThreadLoop(void *pfd)
 {
 #ifdef CANON
     try {
@@ -334,7 +334,7 @@ static void *serial_listen_thread_loop(void *pfd)
             if(END_MESSAGE == buf[nread - 1]) {
                 (void)process_cmd_from_radio(buf, nread);
             } else {
-                printf("serial_listen_thread_loop: no end message. Read %d bytes:", nread);
+                printf("serialListenThreadLoop: no end message. Read %d bytes:", nread);
                 if(5 > nread)
                     for(n = 0; n < nread; n++)
                         printf(" %02X", buf[n]);
@@ -346,7 +346,7 @@ static void *serial_listen_thread_loop(void *pfd)
             }
         }
     } catch(...) {
-        puts("serial_listen_thread_loop: cancelled");
+        puts("serialListenThreadLoop: cancelled");
         throw;
     }
 #else
@@ -356,7 +356,7 @@ static void *serial_listen_thread_loop(void *pfd)
     while(!f_done) {
         nread = read(f_fd, buf, sizeof(buf));
         if(nread) {
-            printf("serial_listen_thread_loop: read %d bytes:", nread);
+            printf("serialListenThreadLoop: read %d bytes:", nread);
             for(n = 0; n < nread; n++) {
                 printf(" %02X", buf[n]);
             }
